@@ -1,0 +1,4 @@
+[deps]
+DiffEqFlux = "aae7a2af-3d4f-5e19-a356-7da93b79d9d0"
+LightGraphs = "093fc24a-ae57-5d10-9952-331d41423f4d"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
