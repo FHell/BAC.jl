@@ -49,7 +49,7 @@ function create_graph_example(dim_sys, av_deg, tsteps, N_samples)
         2,
         dim_sys,
         zeros(2),
-        zeros(dim_sys),
+        zeros(dim_sys)
     )
 end
 
