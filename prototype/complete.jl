@@ -28,7 +28,7 @@ begin #BAC.jl
         solver
     end
       
-    function (bl::BAC_Problem)(p)
+    function (bl::BAC_Problem)(p; solver_options...)
           # Evalute the loss function of the BAC problem
       
           @views begin
@@ -41,14 +41,14 @@ begin #BAC.jl
           # For plotting evaluate the first sample outside the loop:
           n = 1
           i = bl.input_sample[n]
-          dd_sys = solve(ODEProblem((dy,y,p,t) -> bl.f_sys(dy, y, i(t), p, t), bl.y0_sys, bl.t_span, p_sys), bl.solver; saveat=bl.tsteps)
-          dd_spec = solve(ODEProblem((dy,y,p,t) -> bl.f_spec(dy, y, i(t), p, t), bl.y0_spec, bl.t_span, p_specs[n]), bl.solver, saveat=bl.tsteps)
+          dd_sys = solve(ODEProblem((dy,y,p,t) -> bl.f_sys(dy, y, i(t), p, t), bl.y0_sys, bl.t_span, p_sys), bl.solver; saveat=bl.tsteps, solver_options...)
+          dd_spec = solve(ODEProblem((dy,y,p,t) -> bl.f_spec(dy, y, i(t), p, t), bl.y0_spec, bl.t_span, p_specs[n]), bl.solver; saveat=bl.tsteps, solver_options...)
           loss += bl.output_metric(dd_sys, dd_spec)
       
           for n in 2:bl.N_samples
               i = bl.input_sample[n]
-              dd_sys = solve(ODEProblem((dy,y,p,t) -> bl.f_sys(dy, y, i(t), p, t), bl.y0_sys, bl.t_span, p_sys), bl.solver, saveat=bl.tsteps)
-              dd_spec = solve(ODEProblem((dy,y,p,t) -> bl.f_spec(dy, y, i(t), p, t), bl.y0_spec, bl.t_span, p_specs[n]), bl.solver, saveat=bl.tsteps)
+              dd_sys = solve(ODEProblem((dy,y,p,t) -> bl.f_sys(dy, y, i(t), p, t), bl.y0_sys, bl.t_span, p_sys), bl.solver; saveat=bl.tsteps, solver_options...)
+              dd_spec = solve(ODEProblem((dy,y,p,t) -> bl.f_spec(dy, y, i(t), p, t), bl.y0_spec, bl.t_span, p_specs[n]), bl.solver; saveat=bl.tsteps, solver_options...)
               loss += bl.output_metric(dd_sys, dd_spec)
           end
       
@@ -58,8 +58,8 @@ begin #BAC.jl
       
       function (bl::BAC_Problem)(n, p_sys, p_spec)
           i = bl.input_sample[n]
-          dd_sys = solve(ODEProblem((dy,y,p,t) -> bl.f_sys(dy, y, i(t), p, t), bl.y0_sys, bl.t_span, p_sys), bl.solver; saveat=bl.tsteps)
-          dd_spec = solve(ODEProblem((dy,y,p,t) -> bl.f_spec(dy, y, i(t), p, t), bl.y0_spec, bl.t_span, p_spec), bl.solver, saveat=bl.tsteps)
+          dd_sys = solve(ODEProblem((dy,y,p,t) -> bl.f_sys(dy, y, i(t), p, t), bl.y0_sys, bl.t_span, p_sys), bl.solver; saveat=bl.tsteps, solver_options...)
+          dd_spec = solve(ODEProblem((dy,y,p,t) -> bl.f_spec(dy, y, i(t), p, t), bl.y0_spec, bl.t_span, p_spec), bl.solver; saveat=bl.tsteps, solver_options...)
           
           loss = bl.output_metric(dd_sys, dd_spec)
       
@@ -90,11 +90,11 @@ begin #BAC.jl
           p
       end
       
-      function individual_loss(bl::BAC_Problem, p_sys, p_specs, n)
+      function individual_loss(bl::BAC_Problem, p_sys, p_specs, n; solver_options...)
           # Evalute the individual loss contributed by the nth sample
           i = bl.input_sample[n]
-          dd_sys = solve(ODEProblem((dy,y,p,t) -> bl.f_sys(dy, y, i(t), p, t), bl.y0_sys, bl.t_span, p_sys), bl.solver, saveat=bl.tsteps)
-          dd_spec = solve(ODEProblem((dy,y,p,t) -> bl.f_spec(dy, y, i(t), p, t), bl.y0_spec, bl.t_span, p_specs[n]), bl.solver, saveat=bl.tsteps)
+          dd_sys = solve(ODEProblem((dy,y,p,t) -> bl.f_sys(dy, y, i(t), p, t), bl.y0_sys, bl.t_span, p_sys), bl.solver; saveat=bl.tsteps, solver_options...)
+          dd_spec = solve(ODEProblem((dy,y,p,t) -> bl.f_spec(dy, y, i(t), p, t), bl.y0_spec, bl.t_span, p_specs[n]), bl.solver; saveat=bl.tsteps, solver_options...)
           bl.output_metric(dd_sys, dd_spec)
       end
       
