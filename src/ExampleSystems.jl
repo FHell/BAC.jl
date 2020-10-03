@@ -1,9 +1,3 @@
-
-module ExampleSystems
-
-using ..BAC
-using Random
-
 function rand_fourier_input_generator(nn, N=10)
     a = randn(N)
     theta = 2*pi*rand(N)
@@ -12,7 +6,6 @@ end
 
 relu(x) = max(0., x)
 
-using LightGraphs
 struct nl_diff_dyn{T}
     L::T
 end
@@ -23,7 +16,7 @@ function (dd::nl_diff_dyn)(dx, x, i, p, t)
     nothing
 end
 
-struct StandardOutputMetric
+mutable struct StandardOutputMetric
     n_sys
     n_spec
 end
@@ -38,7 +31,7 @@ function create_graph_example(dim_sys, av_deg, tsteps, N_samples)
     f_spec = nl_diff_dyn(laplacian_matrix(g_spec))
     f_sys = nl_diff_dyn(laplacian_matrix(g_sys))
 
-    BAC.BAC_Problem(
+    BAC_Problem(
         f_spec,
         f_sys,
         tsteps,
@@ -52,5 +45,3 @@ function create_graph_example(dim_sys, av_deg, tsteps, N_samples)
         zeros(dim_sys)
     )
 end
-
-end # module

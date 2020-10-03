@@ -1,9 +1,7 @@
+# For exploring features in the package here is a non package include based environment for running the code.
 cd(@__DIR__)
 using Pkg
 Pkg.activate(".")
-# using Revise
-
-# to prototype new features I copied everything into one file and made it mutable here.
 
 using Random
 using DiffEqFlux
@@ -12,259 +10,9 @@ using Plots
 using LightGraphs
 using Statistics
 
-begin #BAC.jl
-    mutable struct BAC_Problem
-        f_spec # f(dy, y, i, p, t)
-        f_sys
-        tsteps
-        t_span
-        input_sample # this is called with the sample as an argument and needs to return an input function i(t)
-        output_metric
-        N_samples::Int
-        dim_spec::Int
-        dim_sys::Int
-        y0_spec
-        y0_sys
-        solver
-    end
-      
-    function (bl::BAC_Problem)(p; solver_options...)
-          # Evalute the loss function of the BAC problem
-      
-          @views begin
-              p_sys = p[1:bl.dim_sys]
-              p_specs = [p[bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec] for n in 1:bl.N_samples]
-          end
-      
-          loss = 0.
-      
-          # For plotting evaluate the first sample outside the loop:
-          n = 1
-          i = bl.input_sample[n]
-          dd_sys = solve(ODEProblem((dy,y,p,t) -> bl.f_sys(dy, y, i(t), p, t), bl.y0_sys, bl.t_span, p_sys), bl.solver; saveat=bl.tsteps, solver_options...)
-          dd_spec = solve(ODEProblem((dy,y,p,t) -> bl.f_spec(dy, y, i(t), p, t), bl.y0_spec, bl.t_span, p_specs[n]), bl.solver; saveat=bl.tsteps, solver_options...)
-          loss += bl.output_metric(dd_sys, dd_spec)
-      
-          for n in 2:bl.N_samples
-              i = bl.input_sample[n]
-              dd_sys = solve(ODEProblem((dy,y,p,t) -> bl.f_sys(dy, y, i(t), p, t), bl.y0_sys, bl.t_span, p_sys), bl.solver; saveat=bl.tsteps, solver_options...)
-              dd_spec = solve(ODEProblem((dy,y,p,t) -> bl.f_spec(dy, y, i(t), p, t), bl.y0_spec, bl.t_span, p_specs[n]), bl.solver; saveat=bl.tsteps, solver_options...)
-              loss += bl.output_metric(dd_sys, dd_spec)
-          end
-      
-          loss, dd_sys, dd_spec
-      end
-      
-      
-      function (bl::BAC_Problem)(n, p_sys, p_spec)
-          i = bl.input_sample[n]
-          dd_sys = solve(ODEProblem((dy,y,p,t) -> bl.f_sys(dy, y, i(t), p, t), bl.y0_sys, bl.t_span, p_sys), bl.solver; saveat=bl.tsteps, solver_options...)
-          dd_spec = solve(ODEProblem((dy,y,p,t) -> bl.f_spec(dy, y, i(t), p, t), bl.y0_spec, bl.t_span, p_spec), bl.solver; saveat=bl.tsteps, solver_options...)
-          
-          loss = bl.output_metric(dd_sys, dd_spec)
-      
-          loss, dd_sys, dd_spec
-      end
-      
-      function bac_spec_only(bl::BAC_Problem, p_initial)
-          # Optimize the specs only
-          println("new2")
-
-          p = copy(p_initial)
-          @views begin
-              p_sys = p[1:bl.dim_sys]
-              p_specs = [p[bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec] for n in 1:bl.N_samples]
-          end
-    
-      
-          for n in 1:bl.N_samples
-            println(n)
-            res = DiffEqFlux.sciml_train(
-                x -> bl(n, p_sys, x),
-                Array(p_specs[n]),
-                DiffEqFlux.BFGS(initial_stepnorm = 0.01),
-                maxiters = 100)
-              p_specs[n] .= res.minimizer
-          end
-      
-          p
-      end
-      
-      function individual_loss(bl::BAC_Problem, p_sys, p_specs, n; solver_options...)
-          # Evalute the individual loss contributed by the nth sample
-          i = bl.input_sample[n]
-          dd_sys = solve(ODEProblem((dy,y,p,t) -> bl.f_sys(dy, y, i(t), p, t), bl.y0_sys, bl.t_span, p_sys), bl.solver; saveat=bl.tsteps, solver_options...)
-          dd_spec = solve(ODEProblem((dy,y,p,t) -> bl.f_spec(dy, y, i(t), p, t), bl.y0_spec, bl.t_span, p_specs[n]), bl.solver; saveat=bl.tsteps, solver_options...)
-          bl.output_metric(dd_sys, dd_spec)
-      end
-      
-      function individual_losses(bl::BAC_Problem, p)
-          # Return the array of losses
-          @views begin
-              p_sys = p[1:bl.dim_sys]
-              p_specs = [p[bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec] for n in 1:bl.N_samples]
-          end
-      
-          [individual_loss(bl::BAC_Problem, p_sys, p_specs, n) for n in 1:bl.N_samples]
-      end
-      
-      
-      # The constructors for BAC_Problem
-      
-      function BAC_Problem(
-          f_spec,
-          f_sys,
-          tsteps,
-          t_span,
-          input_sample, # this is called with the sample as an argument and needs to return an input function i(t)
-          output_metric,
-          N_samples::Int,
-          dim_spec::Int,
-          dim_sys::Int,
-          y0_spec,
-          y0_sys; solver = Tsit5())
-      
-          BAC_Problem(f_spec, f_sys, tsteps, t_span, input_sample, output_metric, N_samples, dim_spec, dim_sys, y0_spec, y0_sys, solver)
-      end
-      
-      function BAC_Problem(
-          f_spec,
-          f_sys,
-          tsteps,
-          input_sample, # this is called with the sample as an argument and needs to return an input function i(t)
-          output_metric,
-          N_samples::Int,
-          dim_spec::Int,
-          dim_sys::Int; solver = Tsit5())
-          t_span = (tsteps[1], tsteps[end])
-          y0_spec = zeros(dim_spec)
-          y0_sys = zeros(dim_sys)
-          BAC_Problem(f_spec, f_sys, tsteps, t_span, input_sample, output_metric, N_samples, dim_spec, dim_sys, y0_spec, y0_sys, solver)
-       end
-      
-      # Resampling the BAC_Problem
-      export resample
-      function resample(sampler, bac::BAC_Problem)
-          new_input_sample = [sampler(n) for n in 1:bac.N_samples]
-          BAC_Problem(bac.f_spec, bac.f_sys, bac.tsteps, bac.t_span, new_input_sample, bac.output_metric, bac.N_samples, bac.dim_spec, bac.dim_sys, bac.y0_spec, bac.y0_sys, bac.solver)
-      end
-      
-      # Basic callbacks
-      
-      
-      function basic_bac_callback(p, loss, dd_sys, dd_spec)
-          display(loss)
-          # Tell sciml_train to not halt the optimization. If return true, then
-          # optimization stops.
-          return false
-      end
-end
-
-begin # ExampleSystems
-
-    function rand_fourier_input_generator(nn, N=10)
-        a = randn(N)
-        theta = 2*pi*rand(N)
-        return t -> sum([a[n]*cos(n*t+theta[n]) for n in 1:N])
-    end
-
-    relu(x) = max(0., x)
-
-    struct nl_diff_dyn{T}
-        L::T
-    end
-    function (dd::nl_diff_dyn)(dx, x, i, p, t)
-        flows = dd.L * x
-        @. dx = x - relu(p) * x^3 - flows
-        dx[1] += i - x[1]
-        nothing
-    end
-
-    mutable struct StandardOutputMetric
-        n_sys
-        n_spec
-    end
-    function (som::StandardOutputMetric)(sol_sys, sol_spec)
-        sum((sol_sys[som.n_sys, :] .- sol_spec[som.n_spec, :]) .^ 2)
-    end
-
-    function create_graph_example(dim_sys, av_deg, tsteps, N_samples)
-        g_spec = SimpleGraph([Edge(1 => 2)])
-        g_sys = barabasi_albert(dim_sys, av_deg)
-
-        f_spec = nl_diff_dyn(laplacian_matrix(g_spec))
-        f_sys = nl_diff_dyn(laplacian_matrix(g_sys))
-
-        BAC_Problem(
-            f_spec,
-            f_sys,
-            tsteps,
-            (tsteps[1], tsteps[end]),
-            [rand_fourier_input_generator(n) for n = 1:N_samples], # this is called with the sample as an argument and needs to return an input function i(t)
-            StandardOutputMetric(1, 1),
-            N_samples,
-            2,
-            dim_sys,
-            zeros(2),
-            zeros(dim_sys)
-        )
-    end
-
-end
-
-begin # PlotUtils
-
-
-    function plot_callback(p, loss, dd_sys, dd_spec)
-        display(loss)
-        plt = plot(dd_sys, vars=1)
-        plot!(plt, dd_spec, vars=1)
-        display(plt)
-        # Tell sciml_train to not halt the optimization. If return true, then
-        # optimization stops.
-        return false
-    end
-
-    function l_heatmap(p_1a,p_1b,p_2a,p_2b, p, bac; sample_number = 1, axis_1 = 1, axis_2 = 2, stepsize = 1, title="")
-        axis_m = zeros(2)
-        axis = [axis_1,axis_2]
-        for i in 1:2
-            if axis[i]<=bac.dim_sys
-                axis_m[i] = axis[i]
-            else
-                axis_m[i] = bac.dim_sys+bac.dim_spec*(sample_number-1)+axis[i]
-            end
-        end
-        a_1 = Int(axis_m[1])
-        a_2 = Int(axis_m[2])
-        p_1s = (p_1a:stepsize:p_1b) .+ p[a_1]
-        p_2s = (p_2a:stepsize:p_2b) .+ p[a_2]
-        z = zeros(length(p_1s),length(p_2s))
-        for i = 1:length(p_1s)
-            for j = 1:length(p_2s)
-                p_changed = copy(p)
-                p_changed[a_1] = p_1s[i]
-                p_changed[a_2] = p_2s[j]
-                l, sol1, sol2 = bac(p_changed)
-                z[i,j] = bac.output_metric(sol1, sol2)
-            end
-        end
-        heatmap(p_1s, p_2s, z, aspect_ratio=1, xlabel="axis $axis_1", ylabel="axis $axis_2", title=title)
-    end
-
-    function display_heatmaps(p_1a, p_1b, p_2a, p_2b, p, bac; axis_1 = 1, axis_2 = 2, sample_number = 1,stepsize = 1, title = "")
-        for s in sample_number
-        for i in axis_1
-            for j in axis_2
-            if j in axis_1 && i in axis_2 && j > i || !(j in axis_1) || !(i in axis_2)
-                display(l_heatmap(p_1a, p_1b, p_2a, p_2b, p, bac; axis_1 = i, axis_2 = j,sample_number = s,title = title))
-            end
-            end
-        end
-        end
-    end
-    
-end # module
+include("../src/Core.jl")
+include("../src/ExampleSystems.jl")
+include("../src/PlotUtils.jl")
 
 Random.seed!(42);
 
@@ -282,6 +30,7 @@ p_initial = ones(2*10+dim_sys)
 # bac_1 implements the loss function. We are looking for parameters that minimize it, it can be evaluated
 # directly on a parameter array:
 l, sol1, sol2 = bac_10(p_initial)
+l, sol1, sol2 = bac_10(p_initial; abstol=1e-2, reltol=1e-2)
 
 # Plot callback plots the solutions passed to it:
 plot_callback(p_initial, l, sol1, sol2)
@@ -289,14 +38,23 @@ plot_callback(p_initial, l, sol1, sol2)
 # Underlying the loss function is the output metric comparing the two trajectories:
 bac_10.output_metric(sol1, sol2)
 
-# Train with 10 samples and relatively large ADAM step size: (1.5 minutes on my Laptop)
-res_10 = DiffEqFlux.sciml_train(
-    bac_10,
+# Train with 10 samples, low accuracy and relatively large ADAM step size: (1.5 minutes on my Laptop)
+@time res_10 = DiffEqFlux.sciml_train(
+    p -> bac_10(p; abstol=1e-2, reltol=1e-2),
     p_initial,
     DiffEqFlux.ADAM(0.5),
-    maxiters = 200,
+    maxiters = 100,
     cb = basic_bac_callback
     )
+
+@time res_10 = DiffEqFlux.sciml_train(
+    p -> bac_10(p; abstol=1e-6, reltol=1e-6),
+    res_10.minimizer,
+    DiffEqFlux.ADAM(0.5),
+    maxiters = 10,
+    cb = basic_bac_callback
+    )
+    
 
 # We can check the quality of the resulting minimizer by optimizing the specs only (a much simpler repeated 2d optimization problem)
 p2 = bac_spec_only(bac_10, res_10.minimizer)
