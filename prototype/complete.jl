@@ -29,44 +29,51 @@ p_initial = ones(2*10+dim_sys)
 
 # bac_1 implements the loss function. We are looking for parameters that minimize it, it can be evaluated
 # directly on a parameter array:
-l, sol1, sol2 = bac_10(p_initial)
-l, sol1, sol2 = bac_10(p_initial; abstol=1e-2, reltol=1e-2)
+l = bac_10(p_initial) # 110
+l = bac_10(p_initial; abstol=1e-2, reltol=1e-2) # 108
 
 # Plot callback plots the solutions passed to it:
-plot_callback(p_initial, l, sol1, sol2)
+plot_callback(bac_10, p_initial, l)
 
 # Underlying the loss function is the output metric comparing the two trajectories:
+sol1, sol2 = solve_bl_n(bac_10, 3, p_initial)
 bac_10.output_metric(sol1, sol2)
+
+# We can get all the individual contributions with
+il = individual_losses(bac_10, p_initial)
 
 # Train with 10 samples, low accuracy and relatively large ADAM step size: (1.5 minutes on my Laptop)
 @time res_10 = DiffEqFlux.sciml_train(
     p -> bac_10(p; abstol=1e-2, reltol=1e-2),
     p_initial,
     DiffEqFlux.ADAM(0.5),
-    maxiters = 100,
+    maxiters = 50,
     cb = basic_bac_callback
     )
 
+# Train with 10 samples, medium accuracy and still large ADAM step size:
 @time res_10 = DiffEqFlux.sciml_train(
     p -> bac_10(p; abstol=1e-6, reltol=1e-6),
     res_10.minimizer,
     DiffEqFlux.ADAM(0.5),
-    maxiters = 10,
+    maxiters = 20,
     cb = basic_bac_callback
     )
-    
+
+# After a few runs of the above code block (trying both larger and smaller ADAM step sizes) I get this down to < 0.3
+# At this point I don't really care about going further as we are probably overfitting to the small sample.
 
 # We can check the quality of the resulting minimizer by optimizing the specs only (a much simpler repeated 2d optimization problem)
 p2 = bac_spec_only(bac_10, res_10.minimizer)
 losses = individual_losses(bac_10, p2)
-median(losses)
+median(losses) #0.02
 
 # In order to understand how much we were overfitting with respect to the concrete sample, we resample
 # That is, we generate a new problem with a new sample from the same distribution:
 bac_10_rs = resample(rand_fourier_input_generator, bac_10)
 p3 = bac_spec_only(bac_10_rs, res_10.minimizer)
 losses_rs = individual_losses(bac_10_rs, p3)
-median(losses_rs)
+median(losses_rs) #0.04
 # This will give us information on the system tuning with a sample different from the one that the tuning was optimized for.
 
 # We warmed up the optimization with a very small number of samples,
@@ -74,6 +81,10 @@ median(losses_rs)
 
 p_100 = ones(2*100+dim_sys)
 p_100[1:dim_sys] .= res_10.minimizer[1:dim_sys]
+p_100[dim_sys+1:end] .= repeat(res_10.minimizer[dim_sys+1:dim_sys+2], 100)
+
+# DISREGARD BELOW HERE bac_100 is not the same system with fewer samples but a different system/network!
+# ToDo: study the same system with a larger sample.
 
 # Optimizing only the specs is a task linear in the number of samples,
 # the idea is that this will help with warming up the optimization

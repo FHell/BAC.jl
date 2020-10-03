@@ -1,5 +1,6 @@
-function plot_callback(p, loss, dd_sys, dd_spec)
+function plot_callback(bl, p, loss)
     display(loss)
+    dd_sys, dd_spec = solve_bl_n(bl, 1, p)
     plt = plot(dd_sys, vars=1)
     plot!(plt, dd_spec, vars=1)
     display(plt)
