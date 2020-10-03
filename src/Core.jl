@@ -92,22 +92,10 @@ function individual_losses(bl::BAC_Problem, p)
 end
 
 
-# A constructors for BAC_Problem with standard solver
+# A constructors for BAC_Problem with a default solver
 
-function BAC_Problem(
-    f_spec,
-    f_sys,
-    tsteps,
-    t_span,
-    input_sample, # this is called with the sample as an argument and needs to return an input function i(t)
-    output_metric,
-    N_samples::Int,
-    dim_spec::Int,
-    dim_sys::Int,
-    y0_spec,
-    y0_sys; solver = Tsit5())
-
-    BAC_Problem(f_spec, f_sys, tsteps, t_span, input_sample, output_metric, N_samples, dim_spec, dim_sys, y0_spec, y0_sys, solver)
+function BAC_Problem(args...; solver=Tsit5())
+    BAC_Problem(args..., solver)
 end
 
 
