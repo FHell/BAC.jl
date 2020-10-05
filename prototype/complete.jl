@@ -2,6 +2,7 @@
 cd(@__DIR__)
 using Pkg
 Pkg.activate(".")
+# Pkg.instantiate()
 
 using Random
 using DiffEqFlux
