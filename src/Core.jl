@@ -1,7 +1,7 @@
-export BAC_Problem
+export BAC_Loss
 import Base.@kwdef
 
-@kwdef mutable struct BAC_Problem
+@kwdef mutable struct BAC_Loss
     f_spec # f(dy, y, i, p, t)
     f_sys
     tsteps
@@ -16,7 +16,7 @@ import Base.@kwdef
     solver = Tsit5()
 end
 
-function (bl::BAC_Problem)(p; solver_options...)
+function (bl::BAC_Loss)(p; solver_options...)
     # Evalute the loss function of the BAC problem
 
     @views begin
@@ -34,7 +34,7 @@ function (bl::BAC_Problem)(p; solver_options...)
     loss / bl.N_samples
 end
 
-function (bl::BAC_Problem)(n, p_sys, p_spec; solver_options...)
+function (bl::BAC_Loss)(n, p_sys, p_spec; solver_options...)
     # loss function for sample n only
     i = bl.input_sample[n]
     bl.output_metric(solve_sys_spec(bl, i, p_sys, p_spec; solver_options...)...)
@@ -58,7 +58,7 @@ function solve_bl_n(bl, n::Int, p; solver_options...)
 end
 
 
-function bac_spec_only(bl::BAC_Problem, p_initial; optimizer=DiffEqFlux.ADAM(0.01), optimizer_options=(:maxiters => 100,), solver_options...)
+function bac_spec_only(bl::BAC_Loss, p_initial; optimizer=DiffEqFlux.ADAM(0.01), optimizer_options=(:maxiters => 100,), solver_options...)
     # Optimize the specs only
 
     p = copy(p_initial)
@@ -81,7 +81,7 @@ function bac_spec_only(bl::BAC_Problem, p_initial; optimizer=DiffEqFlux.ADAM(0.0
 end
 
 
-function individual_losses(bl::BAC_Problem, p)
+function individual_losses(bl::BAC_Loss, p)
     # Return the array of losses
     @views begin
         p_sys = p[1:bl.dim_sys]
@@ -92,21 +92,21 @@ function individual_losses(bl::BAC_Problem, p)
 end
 
 
-# A constructors for BAC_Problem with a default solver
+# A constructors for BAC_Loss with a default solver
 
-function BAC_Problem(args...; solver=Tsit5())
-    BAC_Problem(args..., solver)
+function BAC_Loss(args...; solver=Tsit5())
+    BAC_Loss(args..., solver)
 end
 
 
-# Resampling the BAC_Problem
+# Resampling the BAC_Loss
 export resample
-function resample(sampler, bac::BAC_Problem; n = 0)
+function resample(sampler, bac::BAC_Loss; n = 0)
     if n > 0
         bac.N_samples = n
     end
     new_input_sample = [sampler(n) for n in 1:bac.N_samples]
-    BAC_Problem(bac.f_spec, bac.f_sys, bac.tsteps, bac.t_span, new_input_sample, bac.output_metric, bac.N_samples, bac.dim_spec, bac.dim_sys, bac.y0_spec, bac.y0_sys, bac.solver)
+    BAC_Loss(bac.f_spec, bac.f_sys, bac.tsteps, bac.t_span, new_input_sample, bac.output_metric, bac.N_samples, bac.dim_spec, bac.dim_sys, bac.y0_spec, bac.y0_sys, bac.solver)
 end
 
 # Basic callback

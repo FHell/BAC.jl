@@ -35,7 +35,7 @@ function create_graph_example(dim_sys, av_deg, tsteps, N_samples)
     f_spec = nl_diff_dyn(laplacian_matrix(g_spec))
     f_sys = nl_diff_dyn(laplacian_matrix(g_sys))
 
-    BAC_Problem(
+    BAC_Loss(
         f_spec,
         f_sys,
         tsteps,
