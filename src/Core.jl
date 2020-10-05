@@ -31,7 +31,7 @@ function (bl::BAC_Problem)(p; solver_options...)
         loss += bl.output_metric(solve_sys_spec(bl, i, p_sys, p_specs[n]; solver_options...)...)
     end
 
-    loss
+    loss / bl.N_samples
 end
 
 function (bl::BAC_Problem)(n, p_sys, p_spec; solver_options...)
@@ -70,7 +70,7 @@ function bac_spec_only(bl::BAC_Problem, p_initial; optimizer=DiffEqFlux.ADAM(0.0
     for n in 1:bl.N_samples
     println(n)
     res = DiffEqFlux.sciml_train(
-        x -> bl(n, p_sys, x), # Loss function for each n individually
+        x -> bl(n, p_sys, x; solver_options...), # Loss function for each n individually
         Array(p_specs[n]),
         optimizer;
         optimizer_options...)
@@ -101,7 +101,10 @@ end
 
 # Resampling the BAC_Problem
 export resample
-function resample(sampler, bac::BAC_Problem)
+function resample(sampler, bac::BAC_Problem; n = 0)
+    if n > 0
+        bac.N_samples = n
+    end
     new_input_sample = [sampler(n) for n in 1:bac.N_samples]
     BAC_Problem(bac.f_spec, bac.f_sys, bac.tsteps, bac.t_span, new_input_sample, bac.output_metric, bac.N_samples, bac.dim_spec, bac.dim_sys, bac.y0_spec, bac.y0_sys, bac.solver)
 end

@@ -21,7 +21,11 @@ mutable struct StandardOutputMetric
     n_spec
 end
 function (som::StandardOutputMetric)(sol_sys, sol_spec)
-    sum((sol_sys[som.n_sys, :] .- sol_spec[som.n_spec, :]) .^ 2)
+    if sol_sys.retcode == :Success && sol_spec.retcode == :Success
+        return sum((sol_sys[som.n_sys, :] .- sol_spec[som.n_spec, :]) .^ 2)
+    else
+        return Inf # Solvers failing is bad.
+    end
 end
 
 function create_graph_example(dim_sys, av_deg, tsteps, N_samples)
