@@ -20,7 +20,6 @@ dim_sys = 10
 
 bac_10 = create_graph_example(dim_sys, 3, 0.:0.1:10., 10)
 
-bac_100 = create_graph_example(dim_sys, 3, 0.:0.1:10., 100)
 # a nonlinear diffusively coupled graph system.
 # Specification is a two node version of the graph.
 # => Can we make a large graph react like a small graph by tuning the non-linearity at the nodes?
@@ -58,7 +57,11 @@ il = individual_losses(bac_10, p_initial)
     DiffEqFlux.ADAM(0.5),
     maxiters = 20,
     cb = basic_bac_callback
+    # cb = (p, l) -> plot_callback(bac_10, p, l)
     )
+
+plot_callback(bac_10, res_10.minimizer, l)
+
 
 # After a few runs of the above code block (trying both larger and smaller ADAM step sizes) I get this down to < 0.3
 # At this point I don't really care about going further as we are probably overfitting to the small sample.
@@ -83,13 +86,15 @@ p_100 = ones(2*100+dim_sys)
 p_100[1:dim_sys] .= res_10.minimizer[1:dim_sys]
 p_100[dim_sys+1:end] .= repeat(res_10.minimizer[dim_sys+1:dim_sys+2], 100)
 
-# DISREGARD BELOW HERE bac_100 is not the same system with fewer samples but a different system/network!
-# ToDo: study the same system with a larger sample.
+bac_100 = resample(rand_fourier_input_generator, bac_10; n = 100)
 
 # Optimizing only the specs is a task linear in the number of samples,
 # the idea is that this will help with warming up the optimization
 # We can also study the quality of the tuning found by the optimization based on a small number of Samples
-p_100_initial = bac_spec_only(bac_100, p_100)
+p_100_initial = bac_spec_only(bac_100, p_100;
+                    optimizer=DiffEqFlux.ADAM(0.1),
+                    optimizer_options=(:maxiters => 10,),
+                    abstol = 1e-3, reltol=1e-3)
 losses_100_initial = individual_losses(bac_100, p_100_initial)
 # Todo: Indication of bug or not completely understood behaviour!!
 median(losses_100_initial) # This is much larger (factor 5-10) than the losses_10_rs version. It shouldn't be. Needs to be investigated!!!!!
@@ -99,8 +104,8 @@ median(losses_100_initial) # This is much larger (factor 5-10) than the losses_1
 res_100 = DiffEqFlux.sciml_train(
     bac_100,
     p_100_initial,
-    DiffEqFlux.ADAM(0.1),
-    # DiffEqFlux.BFGS(initial_stepnorm = 0.01),
+    # DiffEqFlux.ADAM(0.5),
+    DiffEqFlux.BFGS(initial_stepnorm = 0.01),
     maxiters = 5,
     cb = basic_bac_callback
     )
@@ -116,6 +121,6 @@ for i in 1:30
         maxiters = 5,
         cb = basic_bac_callback
         )
-    l, sol1, sol2 = bac_100(res_100.minimizer);
-    plot_callback(res_100.minimizer, l, sol1, sol2)
+    l = bac_100(res_100.minimizer);
+    plot_callback(bac_100, res_100.minimizer, l)
 end
