@@ -1,9 +1,3 @@
-
-module ExampleSystems
-
-using ..BAC
-using Random
-
 function rand_fourier_input_generator(nn, N=10)
     a = randn(N)
     theta = 2*pi*rand(N)
@@ -12,7 +6,6 @@ end
 
 relu(x) = max(0., x)
 
-using LightGraphs
 struct nl_diff_dyn{T}
     L::T
 end
@@ -23,12 +16,16 @@ function (dd::nl_diff_dyn)(dx, x, i, p, t)
     nothing
 end
 
-struct StandardOutputMetric
+mutable struct StandardOutputMetric
     n_sys
     n_spec
 end
 function (som::StandardOutputMetric)(sol_sys, sol_spec)
-    sum((sol_sys[som.n_sys, :] .- sol_spec[som.n_spec, :]) .^ 2)
+    if sol_sys.retcode == :Success && sol_spec.retcode == :Success
+        return sum((sol_sys[som.n_sys, :] .- sol_spec[som.n_spec, :]) .^ 2)
+    else
+        return Inf # Solvers failing is bad.
+    end
 end
 
 function create_graph_example(dim_sys, av_deg, tsteps, N_samples)
@@ -38,7 +35,7 @@ function create_graph_example(dim_sys, av_deg, tsteps, N_samples)
     f_spec = nl_diff_dyn(laplacian_matrix(g_spec))
     f_sys = nl_diff_dyn(laplacian_matrix(g_sys))
 
-    BAC.BAC_Problem(
+    BAC_Problem(
         f_spec,
         f_sys,
         tsteps,
@@ -52,5 +49,3 @@ function create_graph_example(dim_sys, av_deg, tsteps, N_samples)
         zeros(dim_sys)
     )
 end
-
-end # module

@@ -1,10 +1,6 @@
-
-module PlotUtils
-
-using Plots
-
-function plot_callback(p, loss, dd_sys, dd_spec)
+function plot_callback(bl, p, loss)
     display(loss)
+    dd_sys, dd_spec = solve_bl_n(bl, 1, p)
     plt = plot(dd_sys, vars=1)
     plot!(plt, dd_spec, vars=1)
     display(plt)
@@ -51,5 +47,3 @@ function display_heatmaps(p_1a, p_1b, p_2a, p_2b, p, bac; axis_1 = 1, axis_2 = 2
     end
     end
 end
-    
-end # module
