@@ -2,7 +2,6 @@
 cd(@__DIR__)
 using Pkg
 Pkg.activate(".")
-# Pkg.instantiate()
 
 using Random
 using DiffEqFlux
@@ -51,13 +50,11 @@ il = individual_losses(bac_10, p_initial)
     cb = basic_bac_callback
     )
 
-# bac_10.solver = Rosenbrock23()
-
 # Train with 10 samples, medium accuracy and still large ADAM step size:
 @time res_10 = DiffEqFlux.sciml_train(
     p -> bac_10(p; abstol=1e-6, reltol=1e-6),
     res_10.minimizer,
-    DiffEqFlux.ADAM(0.8),
+    DiffEqFlux.ADAM(0.5),
     maxiters = 20,
     cb = basic_bac_callback
     # cb = (p, l) -> plot_callback(bac_10, p, l)
@@ -105,10 +102,10 @@ median(losses_100_initial) # This is much larger (factor 5-10) than the losses_1
 
 # Train the full system:
 res_100 = DiffEqFlux.sciml_train(
-    p -> bac_100(p; abstol=1e-3, reltol=1e-3),
+    bac_100,
     p_100_initial,
-    DiffEqFlux.ADAM(0.5),
-    #DiffEqFlux.BFGS(initial_stepnorm = 0.01),
+    # DiffEqFlux.ADAM(0.5),
+    DiffEqFlux.BFGS(initial_stepnorm = 0.01),
     maxiters = 5,
     cb = basic_bac_callback
     )
@@ -117,12 +114,15 @@ res_100 = DiffEqFlux.sciml_train(
 for i in 1:30
     global res_100
     res_100 = DiffEqFlux.sciml_train(
-        p -> bac_100(p; abstol=1e-3, reltol=1e-3),
+        bac_100,
         relu.(res_100.minimizer),
-        DiffEqFlux.ADAM(0.5),
+        DiffEqFlux.ADAM(0.1),
         # DiffEqFlux.BFGS(initial_stepnorm = 0.01),
         maxiters = 5,
         cb = basic_bac_callback
         )
-    plot_callback(bac_100, res_100.minimizer, 0.)
+    l = bac_100(res_100.minimizer);
+    #plot_callback(bac_100, res_100.minimizer, l)
+    #save plots to create optimization animation
+    plot_callback_save(bac_100, res_100.minimizer, l,"../graphics/res_100_int"*string(i, pad = 2)#=;ylims = (-0.5,0.5)=#)
 end

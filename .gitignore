@@ -23,3 +23,6 @@ docs/site/
 # environment.
 Manifest.toml
 !prototype/Manifest.toml
+
+#Folder for saving plots (should probably be individual and only stored locally)
+graphics
