@@ -1,6 +1,6 @@
-export BAC_Loss
 import Base.@kwdef
 
+export BAC_Loss
 @kwdef mutable struct BAC_Loss
     f_spec # f(dy, y, i, p, t)
     f_sys
@@ -14,6 +14,12 @@ import Base.@kwdef
     y0_spec
     y0_sys
     solver = Tsit5()
+end
+
+# A constructors for BAC_Loss with a default solver
+
+function BAC_Loss(args...; solver=Tsit5())
+    BAC_Loss(args..., solver)
 end
 
 function (bl::BAC_Loss)(p; solver_options...)
@@ -40,12 +46,14 @@ function (bl::BAC_Loss)(n, p_sys, p_spec; solver_options...)
     bl.output_metric(solve_sys_spec(bl, i, p_sys, p_spec; solver_options...)...)
 end
 
+export solve_sys_spec
 function solve_sys_spec(bl, i, p_sys, p_spec; solver_options...)
     dd_sys = solve(ODEProblem((dy,y,p,t) -> bl.f_sys(dy, y, i(t), p, t), bl.y0_sys, bl.t_span, p_sys), bl.solver; saveat=bl.tsteps, solver_options...)
     dd_spec = solve(ODEProblem((dy,y,p,t) -> bl.f_spec(dy, y, i(t), p, t), bl.y0_spec, bl.t_span, p_spec), bl.solver; saveat=bl.tsteps, solver_options...)
     dd_sys, dd_spec
 end
 
+export solve_bl_n
 function solve_bl_n(bl, n::Int, p; solver_options...)
     @views begin
         p_sys = p[1:bl.dim_sys]
@@ -57,30 +65,32 @@ function solve_bl_n(bl, n::Int, p; solver_options...)
     solve_sys_spec(bl, i, p_sys, p_spec; solver_options...)
 end
 
-
+export bac_spec_only
 function bac_spec_only(bl::BAC_Loss, p_initial; optimizer=DiffEqFlux.ADAM(0.01), optimizer_options=(:maxiters => 100,), solver_options...)
     # Optimize the specs only
 
     p = copy(p_initial)
+
     @views begin
         p_sys = p[1:bl.dim_sys]
         p_specs = [p[bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec] for n in 1:bl.N_samples]
     end
 
     for n in 1:bl.N_samples
-    println(n)
-    res = DiffEqFlux.sciml_train(
-        x -> bl(n, p_sys, x; solver_options...), # Loss function for each n individually
-        Array(p_specs[n]),
-        optimizer;
-        optimizer_options...)
+        println(n)
+        res = DiffEqFlux.sciml_train(
+            x -> bl(n, p_sys, x; solver_options...), # Loss function for each n individually
+            Array(p_specs[n]),
+            optimizer;
+            optimizer_options...
+            )
         p_specs[n] .= res.minimizer
     end
 
     p
 end
 
-
+export individual_losses
 function individual_losses(bl::BAC_Loss, p)
     # Return the array of losses
     @views begin
@@ -89,13 +99,6 @@ function individual_losses(bl::BAC_Loss, p)
     end
 
     [bl(n, p_sys, p_specs[n]) for n in 1:bl.N_samples]
-end
-
-
-# A constructors for BAC_Loss with a default solver
-
-function BAC_Loss(args...; solver=Tsit5())
-    BAC_Loss(args..., solver)
 end
 
 
