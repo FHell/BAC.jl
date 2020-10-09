@@ -7,7 +7,7 @@ using Plots
 using LightGraphs
 using Statistics
 
-inlcude("Core.jl")
+include("Core.jl")
 include("ExampleSystems.jl")
 include("PlotUtils.jl")
 
