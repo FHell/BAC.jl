@@ -10,15 +10,18 @@ using Plots
 using LightGraphs
 using Statistics
 
-include("../src/Core.jl")
-include("../src/ExampleSystems.jl")
-include("../src/PlotUtils.jl")
+include("$(@__DIR__)/src/Core.jl")
+include("$(@__DIR__)/src/ExampleSystems.jl")
+include("$(@__DIR__)/src/PlotUtils.jl")
 
 Random.seed!(42);
 
 dim_sys = 10
 
 bac_10 = create_graph_example(dim_sys, 3, 0.:0.1:10., 10)
+
+# we can easily plot the input sample
+plot(0:0.01:10, bac_10.input_sample, c=:gray, alpha=1, legend=false)
 
 # a nonlinear diffusively coupled graph system.
 # Specification is a two node version of the graph.
@@ -33,6 +36,7 @@ l = bac_10(p_initial; abstol=1e-2, reltol=1e-2) # 108
 
 # Plot callback plots the solutions passed to it:
 plot_callback(bac_10, p_initial, l)
+
 
 # Underlying the loss function is the output metric comparing the two trajectories:
 sol1, sol2 = solve_bl_n(bac_10, 3, p_initial)
