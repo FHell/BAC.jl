@@ -24,5 +24,7 @@ docs/site/
 Manifest.toml
 !prototype/Manifest.toml
 
+.vscode
+
 #Folder for saving plots (should probably be individual and only stored locally)
 graphics
