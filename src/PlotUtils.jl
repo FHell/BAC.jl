@@ -1,8 +1,10 @@
-function plot_callback(bl, p, loss; plot_options...)
+function plot_callback(bl, p, loss, input_sample=nothing; plot_options...)
     display(loss)
-    dd_sys, dd_spec = solve_bl_n(bl, 1, p)
+    isnothing(input_sample) ? input_sample = rand(1:bl.N_samples) : nothing
+    dd_sys, dd_spec = solve_bl_n(bl, input_sample, p)
     plt = plot(dd_sys, vars=1; label = "System output", plot_options...)
     plot!(plt, dd_spec, vars=1; label = "Specification output", plot_options...)
+    title!("Input sample $(input_sample)")
     display(plt)
     # Tell sciml_train to not halt the optimization. If return true, then
     # optimization stops.

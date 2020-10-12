@@ -18,7 +18,7 @@ Random.seed!(42);
 
 dim_sys = 10
 
-bac_10 = create_graph_example(dim_sys, 3, 0.:0.1:10., 10)
+bac_10 = create_nonlin_example(dim_sys, 3, 0.:0.1:10., 10)
 
 # we can easily plot the input sample
 plot(0:0.01:10, bac_10.input_sample, c=:gray, alpha=1, legend=false)
@@ -54,6 +54,8 @@ il = individual_losses(bac_10, p_initial)
     cb = basic_bac_callback
     )
 
+plot_callback(bac_10, res_10.minimizer, l)
+
 # Train with 10 samples, medium accuracy and still large ADAM step size:
 @time res_10 = DiffEqFlux.sciml_train(
     p -> bac_10(p; abstol=1e-6, reltol=1e-6),
@@ -66,6 +68,22 @@ il = individual_losses(bac_10, p_initial)
 
 plot_callback(bac_10, res_10.minimizer, l)
 
+@time res_10 = DiffEqFlux.sciml_train(
+    p -> bac_10(p),
+    res_10.minimizer,
+    DiffEqFlux.ADAM(0.5),
+    maxiters = 20,
+    cb = basic_bac_callback
+    # cb = (p, l) -> plot_callback(bac_10, p, l)
+    )
+
+plot_callback(bac_10, res_10.minimizer, l)
+
+# this got it down to 0.01 loss. we can look at the minimizer:
+# p_sys
+res_10.minimizer[1:dim_sys] |> relu |> println
+# p_spec
+res_10.minimizer[dim_sys+1:end] |> relu |> println
 
 # After a few runs of the above code block (trying both larger and smaller ADAM step sizes) I get this down to < 0.3
 # At this point I don't really care about going further as we are probably overfitting to the small sample.
