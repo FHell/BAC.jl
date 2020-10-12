@@ -60,7 +60,7 @@ function (dd::nl_swing)(dx, x, i, p, t)
     P = (-1).^(1:dd.N)
     @. dx[1:dd.N] = x[dd.N+1:2dd.N]
     @. dx[dd.N+1:2dd.N] = P - relu(p) * x[dd.N+1:2dd.N] - flows
-    dx[dd.N+1] += 8. * (i - x[dd.N+1])
+    dx[1] += 8. * sin(x[1] - i)
     nothing
 end
 

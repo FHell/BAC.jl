@@ -122,6 +122,9 @@ losses_100_initial = individual_losses(bac_100, p_100_initial)
 median(losses_100_initial) # This is much larger (factor 5-10) than the losses_10_rs version. It shouldn't be. Needs to be investigated!!!!!
 # Possibility: THe optimization in bac_spec_only is not doing its job very well, switch to ADAM?
 
+plot_callback(bac_100, res_100.minimizer, l)
+
+
 # Train the full system:
 res_100 = DiffEqFlux.sciml_train(
     bac_100,
