@@ -4,11 +4,12 @@ function plot_callback(bl, p, loss, input_sample=nothing; plot_options...)
     dd_sys, dd_spec = solve_bl_n(bl, input_sample, p)
     plt = plot(dd_sys, vars=1; label = "System output", plot_options...)
     plot!(plt, dd_spec, vars=1; label = "Specification output", plot_options...)
+    plot!(plt, dd_spec.t, bl.input_sample[input_sample]; c=:gray, alpha=0.75, label = "Input", plot_options...)
     title!("Input sample $(input_sample)")
     display(plt)
     # Tell sciml_train to not halt the optimization. If return true, then
     # optimization stops.
-    return plt
+    return false
 end
 
 function plot_callback_save(bl, p, loss, fig_name; plot_options...)

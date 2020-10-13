@@ -51,7 +51,8 @@ il = individual_losses(bac_10, p_initial)
     p_initial,
     DiffEqFlux.ADAM(0.5),
     maxiters = 50,
-    cb = basic_bac_callback
+    #cb = basic_bac_callback
+    cb = (p, l) -> plot_callback(bac_10, p, l, 1)
     )
 
 plot_callback(bac_10, res_10.minimizer, l)
