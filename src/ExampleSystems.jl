@@ -4,7 +4,7 @@ function rand_fourier_input_generator(nn, N=10)
     return t -> sum([a[n]*cos(n*t+theta[n]) for n in 1:N])
 end
 
-relu(x) = max(0., x)
+relu(x) = max.(0., x)
 
 struct nl_diff_dyn{T}
     L::T
