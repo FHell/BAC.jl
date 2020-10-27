@@ -80,3 +80,28 @@ function Base.show(io::IO, lp::LossPrecision)
 end
 Base.length(lp::LossPrecision) = lp.N
 Base.length(lp_set::LossPrecisionSet) = lp_set.N
+
+function party_new(n_max, optimizer, bac_loss, p_initial)
+    initial_time = Base.Libc.time()
+    tempt = [initial_time, ]
+    templ = [bac_loss(p_initial), ]
+    DiffEqFlux.sciml_train(
+        bac_loss,
+        p_initial,
+        optimizer,
+        maxiters = n_max,
+        cb = (p ,l) -> benchmark_callback(p, l, tempt, templ, initial_time)
+        )
+    tempt .-= initial_time
+    return tempt, templ
+end
+
+function partySet(n_max, setups, bac_loss, p_initial)
+    N = length(setups)
+    t = Vector{Vector{Float64}}(undef,N)
+    l = Vector{Vector{Float64}}(undef,N)
+    for i in 1:N
+        t[i], l[i] = party_new(n_max, setups[i][:opt], bac_loss, p_initial)
+    end
+    return t, l
+end
