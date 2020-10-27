@@ -9,10 +9,12 @@ using OrdinaryDiffEq
 using Plots
 using LightGraphs
 using Statistics
+using DataFrames, Pipe
 
-include("$(@__DIR__)/src/Core.jl")
-include("$(@__DIR__)/src/ExampleSystems.jl")
-include("$(@__DIR__)/src/PlotUtils.jl")
+include("../src/Core.jl")
+include("../src/ExampleSystems.jl")
+include("../src/PlotUtils.jl")
+include("../src/Benchmark.jl")
 
 Random.seed!(42);
 
@@ -31,8 +33,8 @@ p_initial = ones(2*10+dim_sys)
 
 # bac_1 implements the loss function. We are looking for parameters that minimize it, it can be evaluated
 # directly on a parameter array:
-l = bac_10(p_initial) # 110
-l = bac_10(p_initial; abstol=1e-2, reltol=1e-2) # 108
+l = bac_10(p_initial) # 1713
+l = bac_10(p_initial; abstol=1e-2, reltol=1e-2) # 1868
 
 # Plot callback plots the solutions passed to it:
 plot_callback(bac_10, p_initial, l)
@@ -122,12 +124,11 @@ losses_100_initial = individual_losses(bac_100, p_100_initial)
 # Todo: Indication of bug or not completely understood behaviour!!
 median(losses_100_initial) # This is much larger (factor 5-10) than the losses_10_rs version. It shouldn't be. Needs to be investigated!!!!!
 # Possibility: THe optimization in bac_spec_only is not doing its job very well, switch to ADAM?
-
-plot_callback(bac_100, res_100.minimizer, l)
+plot_callback(bac_100, p_100_initial, l)
 
 
 # Train the full system:
-res_100 = DiffEqFlux.sciml_train(
+@time   res_100 = DiffEqFlux.sciml_train(
     bac_100,
     p_100_initial,
     # DiffEqFlux.ADAM(0.5),
@@ -137,7 +138,7 @@ res_100 = DiffEqFlux.sciml_train(
     )
 
 # Continue improving it for 150 Steps with some plotting in between:
-for i in 1:30
+#=for i in 1:30
     global res_100
     res_100 = DiffEqFlux.sciml_train(
         bac_100,
@@ -151,4 +152,61 @@ for i in 1:30
     #plot_callback(bac_100, res_100.minimizer, l)
     #save plots to create optimization animation
     plot_callback_save(bac_100, res_100.minimizer, l,"../graphics/res_100_int"*string(i, pad = 2)#=;ylims = (-0.5,0.5)=#)
+end=#
+
+# Implement training with a set of optimizers
+setups = [Dict(:opt=>DiffEqFlux.ADAM(0.1), :name=>"ADAM(0.1)"),
+          Dict(:opt=>DiffEqFlux.Descent(0.1), :name=>"Descent(0.1)"),
+          Dict(:opt=>DiffEqFlux.AMSGrad(0.1), :name=>"AMSGrad(0.1)"),
+#          Dict(:opt=>DiffEqFlux.NelderMead(), :name=>"NelderMead()")]
+#          Dict(:opt=>DiffEqFlux.BFGS(initial_stepnorm = 0.1), :name=>"BFGS(initial_stepnorm = 0.01)")]
+t, l = partySet(20, setups, bac_100, relu.(res_100.minimizer))
+#tN, lN = party_new(3, DiffEqFlux.NewtonTrustRegion(), bac_100, relu.(res_100.minimizer))
+#Above with error message TypeError: in typeassert, expected Float64, got a value of type ForwardDiff.Dual{Nothing,Float64,12}
+tM, lM = party_new(5000, DiffEqFlux.MomentumGradientDescent(), bac_100, relu.(res_100.minimizer))
+tB, lB = party_new(500, DiffEqFlux.BFGS(initial_stepnorm = 0.1), bac_100, relu.(res_100.minimizer))
+
+# Write training data into DataFrame
+begin
+    BenchResults = DataFrame(solver = String[], times = Float64[], loss = Float64[])
+    for i in 1:length(setups)
+        for j in 1:length(t[i])
+            #BenchResults.solver = repeat(setups[i][:name], length(t[i]))
+            push!(BenchResults.solver, setups[i][:name])
+            push!(BenchResults.times, t[i][j])
+            push!(BenchResults.loss, l[i][j])
+        end
+    end
+    display(BenchResults)
 end
+
+# Display of DataFrame grouped with different solver
+for i in 1:length(setups)
+    display(BenchResults[BenchResults.solver.==setups[i][:name],:])
+end
+
+# Plot of time-loss figure
+begin
+    tempt = filter(:solver => ==(setups[1][:name]), BenchResults)
+    plt = scatter(tempt.times, tempt.loss,
+            title = "Training loss value",
+            label = setups[1][:name])
+    for i in 2:length(setups)
+        tempt = filter(:solver => ==(setups[i][:name]), BenchResults)
+        plt = scatter!(tempt.times, tempt.loss,
+                label = setups[i][:name])
+
+    end
+    display(plt)
+end
+
+# StatsPlots support DataFrames with a marco @df for easy ploting in different solver.
+using StatsPlots
+@df BenchResults scatter(
+    :times,
+    :loss,
+    group = :solver,
+    title = "Training loss value",
+    m = (0.8, [:+ :h :star7], 7),
+    bg = RGB(0.2, 0.2, 0.2)
+)
