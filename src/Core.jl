@@ -86,7 +86,8 @@ function bac_spec_only(bl::BAC_Loss, p_initial; optimizer=DiffEqFlux.ADAM(0.01),
             )
         p_specs[n] .= res.minimizer
     end
-
+println(p_sys)
+println(p_specs)
     p
 end
 
@@ -121,3 +122,26 @@ function basic_bac_callback(p, loss)
     # optimization stops.
     return false
 end
+
+function benchmark_callback(p, loss, tempt, templ, initial_time)
+    if Base.Libc.time() - initial_time  >= 600
+        return true
+    else
+        push!(templ, loss)
+        display(loss)
+# Tell sciml_train to not halt the optimization. If return true, then
+# optimization stops.
+        push!(tempt,Base.Libc.time())
+        return false
+    end
+end
+
+#=function diff(tempt,templ)
+    t = zeros(length(tempt)-1)
+    l = zeros(length(templ)-1)
+    for i in 1:length(tempt)-1
+        t[i] = tempt[i] - tempt[1]
+        l[i] = templ[i]
+    end
+    return t, l
+end=#
