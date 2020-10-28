@@ -1,3 +1,5 @@
+## In VSCode double hashes demarcate code cells that can be run with Shift-Enter
+
 # For exploring features in the package here is a non package include based environment for running the code.
 cd(@__DIR__)
 using Pkg
@@ -20,7 +22,7 @@ Random.seed!(42);
 
 dim_sys = 10
 
-bac_10 = create_nonlin_example(dim_sys, 3, 0.:0.1:10., 10)
+bac_10 = create_graph_example(dim_sys, 3, 0.:0.1:10., 10)
 
 # we can easily plot the input sample
 plot(0:0.01:10, bac_10.input_sample, c=:gray, alpha=1, legend=false)
@@ -30,6 +32,8 @@ plot(0:0.01:10, bac_10.input_sample, c=:gray, alpha=1, legend=false)
 # => Can we make a large graph react like a small graph by tuning the non-linearity at the nodes?
 
 p_initial = ones(2*10+dim_sys)
+
+## Finished initialization
 
 # bac_1 implements the loss function. We are looking for parameters that minimize it, it can be evaluated
 # directly on a parameter array:
@@ -52,12 +56,14 @@ il = individual_losses(bac_10, p_initial)
     p -> bac_10(p; abstol=1e-2, reltol=1e-2),
     p_initial,
     DiffEqFlux.ADAM(0.5),
-    maxiters = 50,
+    maxiters = 5,
     #cb = basic_bac_callback
     cb = (p, l) -> plot_callback(bac_10, p, l, 1)
     )
 
 plot_callback(bac_10, res_10.minimizer, l)
+
+##
 
 # Train with 10 samples, medium accuracy and still large ADAM step size:
 @time res_10 = DiffEqFlux.sciml_train(
@@ -103,6 +109,8 @@ p3 = bac_spec_only(bac_10_rs, res_10.minimizer)
 losses_rs = individual_losses(bac_10_rs, p3)
 median(losses_rs) #0.04
 # This will give us information on the system tuning with a sample different from the one that the tuning was optimized for.
+
+## Larger number of samples
 
 # We warmed up the optimization with a very small number of samples,
 # we can now initialize a higher sampled optimization using the system parameters found in the lower one:
@@ -154,17 +162,19 @@ plot_callback(bac_100, p_100_initial, l)
     plot_callback_save(bac_100, res_100.minimizer, l,"../graphics/res_100_int"*string(i, pad = 2)#=;ylims = (-0.5,0.5)=#)
 end=#
 
+## Benchmarking
+
 # Implement training with a set of optimizers
 setups = [Dict(:opt=>DiffEqFlux.ADAM(0.1), :name=>"ADAM(0.1)"),
           Dict(:opt=>DiffEqFlux.Descent(0.1), :name=>"Descent(0.1)"),
           Dict(:opt=>DiffEqFlux.AMSGrad(0.1), :name=>"AMSGrad(0.1)"),
-#          Dict(:opt=>DiffEqFlux.NelderMead(), :name=>"NelderMead()")]
+          Dict(:opt=>DiffEqFlux.NelderMead(), :name=>"NelderMead()")]
 #          Dict(:opt=>DiffEqFlux.BFGS(initial_stepnorm = 0.1), :name=>"BFGS(initial_stepnorm = 0.01)")]
-t, l = partySet(20, setups, bac_100, relu.(res_100.minimizer))
+t, l = partySet(5, setups, bac_10, p_initial)
 #tN, lN = party_new(3, DiffEqFlux.NewtonTrustRegion(), bac_100, relu.(res_100.minimizer))
 #Above with error message TypeError: in typeassert, expected Float64, got a value of type ForwardDiff.Dual{Nothing,Float64,12}
-tM, lM = party_new(5000, DiffEqFlux.MomentumGradientDescent(), bac_100, relu.(res_100.minimizer))
-tB, lB = party_new(500, DiffEqFlux.BFGS(initial_stepnorm = 0.1), bac_100, relu.(res_100.minimizer))
+tM, lM = party_new(5, DiffEqFlux.MomentumGradientDescent(), bac_10, p_initial)
+tB, lB = party_new(5, DiffEqFlux.BFGS(initial_stepnorm = 0.1), bac_10, p_initial)
 
 # Write training data into DataFrame
 begin
@@ -210,3 +220,4 @@ using StatsPlots
     m = (0.8, [:+ :h :star7], 7),
     bg = RGB(0.2, 0.2, 0.2)
 )
+##
