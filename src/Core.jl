@@ -91,6 +91,26 @@ println(p_specs)
     p
 end
 
+export matching_loss
+function matching_loss(bl::BAC_Loss, p; solver_options...)
+    # Evalute the loss function of the matching of the spec ODE to the system ODE
+    # This means for all input samples we take the same P_spec
+
+    @views begin
+        p_sys = p[1:bl.dim_sys]
+        p_spec = p[bl.dim_sys + 1:bl.dim_sys + bl.dim_spec]
+    end
+
+    loss = 0.
+
+    for n in 1:bl.N_samples
+        i = bl.input_sample[n]
+        loss += bl.output_metric(solve_sys_spec(bl, i, p_sys, p_spec; solver_options...)...)
+    end
+
+    loss / bl.N_samples
+end
+
 export individual_losses
 function individual_losses(bl::BAC_Loss, p)
     # Return the array of losses
