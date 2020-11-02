@@ -23,6 +23,7 @@ docs/site/
 # environment.
 Manifest.toml
 !prototype/Manifest.toml
+!Benchmarking/Manifest.toml
 
 .vscode
 

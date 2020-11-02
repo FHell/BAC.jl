@@ -1,22 +1,6 @@
 ## In VSCode double hashes demarcate code cells that can be run with Shift-Enter
 
-# For exploring features in the package here is a non package include based environment for running the code.
-cd(@__DIR__)
-using Pkg
-Pkg.activate(".")
-
-using Random
-using DiffEqFlux
-using OrdinaryDiffEq
-using Plots
-using LightGraphs
-using Statistics
-using DataFrames, Pipe
-
-include("../src/Core.jl")
-include("../src/ExampleSystems.jl")
-include("../src/PlotUtils.jl")
-include("../src/Benchmark.jl")
+include("benchmark_setup.jl")
 
 Random.seed!(42);
 
@@ -37,7 +21,7 @@ p_initial = ones(2*10+dim_sys)
 ## Benchmarking
 
 # Implement training with a set of optimizers
-setups = [Dict(:opt=>DiffEqFlux.ADAM(0.1), :name=>"ADAM(0.1)"),
+setups = [Dict(:opt=>DiffEqFlux.ADAM(0.1), :name=>"ADAM(0.1)"), # Add support for different maxiters?
           Dict(:opt=>DiffEqFlux.Descent(0.1), :name=>"Descent(0.1)"),
           Dict(:opt=>DiffEqFlux.AMSGrad(0.1), :name=>"AMSGrad(0.1)"),
           Dict(:opt=>DiffEqFlux.NelderMead(), :name=>"NelderMead()"),
@@ -68,34 +52,11 @@ begin
     display(BenchResults)
 end
 
+CSV.write("$(@__FILE__).csv", BenchResults)
+
 # Display of DataFrame grouped with different solver
 for i in 1:length(setups)
     display(BenchResults[BenchResults.solver.==setups[i][:name],:])
 end
 
-# Plot of time-loss figure
-begin
-    tempt = filter(:solver => ==(setups[1][:name]), BenchResults)
-    plt = scatter(tempt.times, tempt.loss,
-            title = "Training loss value",
-            label = setups[1][:name])
-    for i in 2:length(setups)
-        tempt = filter(:solver => ==(setups[i][:name]), BenchResults)
-        plt = scatter!(tempt.times, tempt.loss,
-                label = setups[i][:name])
-
-    end
-    display(plt)
-end
-
-# StatsPlots support DataFrames with a marco @df for easy ploting in different solver.
-using StatsPlots
-@df BenchResults scatter(
-    :times,
-    :loss,
-    group = :solver,
-    title = "Training loss value",
-    m = (0.8, [:+ :h :star7], 7),
-    bg = RGB(0.2, 0.2, 0.2)
-)
-##
+plt = plot_bac_bench(BenchResults)
