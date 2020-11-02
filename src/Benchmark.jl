@@ -81,7 +81,7 @@ end
 Base.length(lp::LossPrecision) = lp.N
 Base.length(lp_set::LossPrecisionSet) = lp_set.N
 
-function party_new(n_max, optimizer, bac_loss, p_initial)
+function single_train(n_max, optimizer, bac_loss, p_initial)
     initial_time = Base.Libc.time()
     tempt = [initial_time, ]
     templ = [bac_loss(p_initial), ]
@@ -96,12 +96,12 @@ function party_new(n_max, optimizer, bac_loss, p_initial)
     return tempt, templ
 end
 
-function partySet(n_max, setups, bac_loss, p_initial)
+function train_set(n_max, setups, bac_loss, p_initial)
     N = length(setups)
     t = Vector{Vector{Float64}}(undef,N)
     l = Vector{Vector{Float64}}(undef,N)
     for i in 1:N
-        t[i], l[i] = party_new(n_max, setups[i][:opt], bac_loss, p_initial)
+        t[i], l[i] = single_train(n_max, setups[i][:opt], bac_loss, p_initial)
     end
     return t, l
 end

@@ -45,14 +45,14 @@ setups = [Dict(:opt=>DiffEqFlux.ADAM(0.1), :name=>"ADAM(0.1)"),
           # Dict(:opt=>DiffEqFlux.BFGS(initial_stepnorm = 0.1), :name=>"BFGS(initial_stepnorm = 0.1)"), #seems to get stuck
           Dict(:opt=>DiffEqFlux.MomentumGradientDescent(), :name=>"MomentumGradientDescent()")]
 
-t, l = partySet(1, setups, bac_10, p_initial) #Compiling everything
-t, l = partySet(20, setups, bac_10, p_initial)
+t, l = train_set(1, setups, bac_10, p_initial) #Compiling everything
+t, l = train_set(20, setups, bac_10, p_initial)
 
-#tN, lN = party_new(3, DiffEqFlux.NewtonTrustRegion(), bac_100, relu.(res_100.minimizer))
+#tN, lN = single_train(3, DiffEqFlux.NewtonTrustRegion(), bac_100, relu.(res_100.minimizer))
 #Above with error message TypeError: in typeassert, expected Float64, got a value of type ForwardDiff.Dual{Nothing,Float64,12}
 
 # BFGS seems to get stuck with too larg maxiter or stepnorm
-# tB, lB = party_new(20, DiffEqFlux.BFGS(initial_stepnorm = 0.01), bac_10, p_initial)
+# tB, lB = single_train(20, DiffEqFlux.BFGS(initial_stepnorm = 0.01), bac_10, p_initial)
 
 # Write training data into DataFrame
 begin
