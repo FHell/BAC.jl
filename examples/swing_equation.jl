@@ -199,12 +199,15 @@ p3 = bac_spec_only(bac_10_rs, p2)
 ####################################################################################
 ## benchmark
 
+include("src/Core.jl")
+include("src/Benchmark.jl")
+
 # Implement training with a set of optimizers
 setups = [Dict(:opt=>DiffEqFlux.ADAM(0.1), :name=>"ADAM(0.1)"), # Add support for different maxiters?
           Dict(:opt=>DiffEqFlux.Descent(0.1), :name=>"Descent(0.1)"),
           Dict(:opt=>DiffEqFlux.AMSGrad(0.1), :name=>"AMSGrad(0.1)"),
           Dict(:opt=>DiffEqFlux.NelderMead(), :name=>"NelderMead()"),
-          Dict(:opt=>DiffEqFlux.BFGS(initial_stepnorm = 0.01), :name=>"BFGS(initial_stepnorm = 0.01)"),
+          # Dict(:opt=>DiffEqFlux.BFGS(initial_stepnorm = 0.01), :name=>"BFGS(initial_stepnorm = 0.01)"),
           # Dict(:opt=>DiffEqFlux.BFGS(initial_stepnorm = 0.1), :name=>"BFGS(initial_stepnorm = 0.1)"), #seems to get stuck
           Dict(:opt=>DiffEqFlux.MomentumGradientDescent(), :name=>"MomentumGradientDescent()")]
 
