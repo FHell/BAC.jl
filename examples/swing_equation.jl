@@ -25,16 +25,26 @@ struct swing_eq{T, TA, TN, TP, TK, TI}
     K::TK
     input_coupling::TI
 end
-
-# scale down the input by a factor of 0.1
-swing_eq(B, B_trans, N) = swing_eq(B, B_trans, N, (-1).^(1:N), 8., 0.1)
-
 # first N entries are phase, second half are frequency variables
 function (dd::swing_eq)(dx, x, i, p, t)
     flows = dd.K .* dd.B * sin.(dd.B_trans * x[1:dd.N])
     @. dx[1:dd.N] = x[dd.N+1:2dd.N]
     # the BAC.relu(p) should be handles outside the function definition
     @. dx[dd.N+1:2dd.N] = dd.P - BAC.relu(p) * x[dd.N+1:2dd.N] - flows
+    dx[1] += dd.K * sin(x[1] - dd.input_coupling * i)
+    nothing
+end
+
+struct swing_spec{TP, TK, TI, TD}
+    P::TP
+    K::TK
+    D::TD
+    input_coupling::TI
+end
+function (dd::swing_spec)(dx, x, i, p, t)
+    @. dx[1:2] = x[3:4]
+    # the BAC.relu(p) should be handles outside the function definition
+    @. dx[3:4] = ( dd.P - dd.D * x[3:4] -  dd.K .* sin.([x[1] - x[3], x[3] - x[1]]) ) / BAC.relu(p) 
     dx[1] += dd.K * sin(x[1] - dd.input_coupling * i)
     nothing
 end
@@ -56,13 +66,12 @@ function (som::SwingOutputMetric)(sol_sys, sol_spec)
 end
 
 function create_swing_example(dim_sys, dim_spec, av_deg, tsteps, N_samples; modes=4)
-    g_spec = SimpleGraph([Edge(1 => 2)])
     g_sys = barabasi_albert(dim_sys, av_deg)
 
     @assert dim_sys == nv(g_sys)
 
-    B_spec = incidence_matrix(g_spec, oriented=true)
-    f_spec = swing_eq(B_spec, B_spec', nv(g_spec), [-1, 1], 8., 0.1)
+    # scale down the input by a factor of 0.1
+    f_spec = swing_spec([-1, 1], 8., 0.1, 0.1)
     B_sys = incidence_matrix(g_sys, oriented=true)
     f_sys = swing_eq(B_sys, B_sys', dim_sys, (-1).^(1:dim_sys), 8., 0.1)
 
@@ -77,8 +86,8 @@ function create_swing_example(dim_sys, dim_spec, av_deg, tsteps, N_samples; mode
         N_samples,
         dim_spec,
         dim_sys,
-        zeros(2nv(g_spec)),
-        zeros(2nv(g_sys)),
+        zeros(2dim_spec),
+        zeros(2dim_sys),
     )
 end
 
@@ -92,7 +101,7 @@ N_samples = 10
 
 bac_10 = create_swing_example(dim_sys, dim_spec, 3, 0.:0.1:50., N_samples)
 
-p_initial = ones(dim_sys + dim_sys * N_samples);
+p_initial = ones(dim_sys + dim_spec * N_samples);
 
 ##
  
@@ -161,13 +170,14 @@ BAC.plot_callback(bac_10, p_initial, l)
 ##
 
 # let's look at a system trajectory again
-sol1, sol2 = solve_bl_n(bac_10, 3, res_10.minimizer)
-
-# plot frequency
-plot(sol1, vars=(dim_sys+1):2dim_sys, c=:black, legend=false)
-plot!(sol2, vars=(dim_spec+1):2dim_spec, c=:red, legend=false)
+sol1, sol2 = solve_bl_n(bac_10, rand(1:10), res_10.minimizer)
 
 @show bac_10.output_metric(sol1, sol2)
+
+# plot frequency
+plot(sol1[1, :] .- sol1[3, :], c=:black, legend=false)
+plot!(sol2[1, :] .- sol2[3, :], c=:red, legend=false)
+
 ##
 # We can check the quality of the resulting minimizer by optimizing the specs only (a much simpler repeated 2d optimization problem)
 p2 = bac_spec_only(bac_10, res_10.minimizer)
@@ -193,7 +203,7 @@ p3 = bac_spec_only(bac_10_rs, p2)
 # [3.1004914201819593, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
 # p_spec
-@show res_10.minimizer[dim_sys+1:end] |> BAC.relu |> println
+@show res_10.minimizer[dim_sys+1:dim_sys+dim_spec*N_samples] |> BAC.relu |> println
 # [21.724647422980105, 1.1327810492139974, 21.488022770061658, 1.2955449338990668, 29.693535400360048, 0.0, 5.28509017931121, 0.0, 3.828808060232345, 0.0, 0.0, 0.0, 31.189165828210648, 0.0, 24.646260154003162, 0.02722732297887498, 0.0, 0.0, 22.17688419187349, 1.0810186317295836, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 
 ####################################################################################
