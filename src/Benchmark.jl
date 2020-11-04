@@ -78,9 +78,47 @@ function Base.show(io::IO, lp::LossPrecision)
   println(io,"Times: $(lp.times)")
   println(io,"Errors: $(lp.errors)")
 end
+
 Base.length(lp::LossPrecision) = lp.N
 Base.length(lp_set::LossPrecisionSet) = lp_set.N
+Base.getindex(lp::LossPrecision,i::Int) = lp.times[i]
+Base.getindex(lp::LossPrecision,::Colon) = lp.times
+Base.getindex(lp_set::LossPrecisionSet,i::Int) = lp_set.lps[i]
+Base.getindex(lp_set::LossPrecisionSet,::Colon) = lp_set.lps
 
+# Plotreceipt for benchmark of solvers
+@recipe function f(lp::LossPrecision)
+  seriestype --> :path
+  label -->  lp.name
+  linewidth --> 3
+  yguide --> "Time (s)"
+  xguide --> "Error"
+  xscale --> :log10
+  yscale --> :log10
+  marker --> :auto
+  lp.errors,lp.times
+end
+
+@recipe function f(lp_set::LossPrecisionSet)
+  seriestype --> :path
+  linewidth --> 3
+  yguide --> "Time (s)"
+  xguide --> "Error"
+  xscale --> :log10
+  yscale --> :log10
+  marker --> :auto
+  errors = Vector{Any}(undef,0)
+  times = Vector{Any}(undef,0)
+  for i in 1:length(lp_set)
+    push!(errors,lp_set[i].errors)
+    push!(times,lp_set[i].times)
+  end
+  label -->  reshape(lp_set.names,1,length(lp_set))
+  errors,times
+end
+
+
+## Training functions
 function single_train(n_max, optimizer, bac_loss, p_initial)
     initial_time = Base.Libc.time()
     tempt = [initial_time, ]
