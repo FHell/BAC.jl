@@ -34,7 +34,7 @@ function (dd::swing_eq)(dx, x, i, p, t)
     flows = dd.K .* dd.B * sin.(dd.B_trans * x[1:dd.N])
     @. dx[1:dd.N] = x[dd.N+1:2dd.N]
     # the relu(p) should be handles outside the function definition
-    @. dx[dd.N+1:2dd.N] = 0. # p[dd.N+1:2dd.N] * ( dd.P - relu(p[1:dd.N]) * x[dd.N+1:2dd.N] - flows )
+    @. dx[dd.N+1:2dd.N] = p[dd.N+1:2dd.N] * ( dd.P - (0.1 + relu(p[1:dd.N])) * x[dd.N+1:2dd.N] - flows )
     dx[dd.N+1] -= dd.K * sin(x[1] - dd.input_coupling * i)
     nothing
 end
@@ -77,7 +77,7 @@ function (som::SwingOutputMetric)(sol_sys, sol_spec)
         # we take the phase at the first node as reference, so ϕ₁≡0
         # the phase at the second node is then ϕ₂ = sol[3, :] .- sol[1, :]
         # the loss function is then ∑ (ϕ₂-ϕ₂')^2 where ϕ₂' is the phase diff in the spec
-        return sum(x->x^2, sol_sys[1, :] .- sol_spec[1, :])
+        return 1. - 1. / (sum(x->x^2, sol_sys[1, :] .- sol_spec[1, :]) + 1.)
     else
         return Inf # Solvers failing is bad.
     end
@@ -118,7 +118,7 @@ dim_sys = 2 * n_nodes
 dim_spec = 2
 N_samples = 10
 
-bac_10 = create_swing_example(n_nodes, dim_spec, 3, 0.:0.1:50., N_samples)
+bac_10 = create_swing_example(n_nodes, dim_spec, 3, 0.:0.1:10., N_samples)
 
 p_initial = ones(dim_sys + dim_spec * N_samples);
 
@@ -160,21 +160,22 @@ plot_callback(bac_10, p_initial, l)
     #cb = (p, l) -> plot_callback(bac_10, p, l, 1)
 )
 
-@show bac_10(res_10.minimizer) # 7279.409305626946
+@show bac_10(res_10.minimizer, abstol=1e-5, reltol=1e-5) # 7279.409305626946
 
 ##
 # Train with 10 samples, low accuracy and relatively large ADAM step size: (1.5 minutes on my Laptop)
 
 bac_10 = resample(rand_fourier_input_generator, bac_10)
 @time res_10 = DiffEqFlux.sciml_train(
-    p -> bac_10(p; abstol=1e-8, reltol=1e-8, sensealg=DiffEqSensitivity.ForwardDiffSensitivty()),
+    p -> bac_10(p; abstol=1e-6, reltol=1e-6, maxiters=1E6, sensealg=DiffEqSensitivity.ForwardDiffSensitivity()),
     res_10.minimizer,
-    DiffEqFlux.ADAM(0.5),
+    DiffEqFlux.AMSGrad(0.1),
     maxiters = 50,
     cb = (p, l) -> plot_callback(bac_10, p, l, 1)
 )
+##
 
-@show bac_10(res_10.minimizer) #5096.921157700889
+@show bac_10(res_10.minimizer, abstol=1e-6, reltol=1e-6, maxiters=1E6) #5096.921157700889
 
 for i in 1:10
 plot_callback(bac_10, res_10.minimizer, 0., i)
