@@ -1,4 +1,4 @@
-function plot_callback(bl, p, loss; input_sample = nothing, plot_options...)
+function plot_callback(bl, p, loss; loss_array = nothing, input_sample = nothing, fig_name = nothing, plot_options...)
     display(loss)
     colors_list = ["blue", "red", "green", "orange", "blue1"]
     plt = plot()
@@ -22,12 +22,18 @@ function plot_callback(bl, p, loss; input_sample = nothing, plot_options...)
         title!("Input samples $(input_sample)")
         display(plt)
     end
-    # Tell sciml_train to not halt the optimization. If return true, then
-    # optimization stops.
+    if !isnothing(fig_name)
+        savefig(fig_name)
+    end
+    if !isnothing(loss_array)
+        append!(loss_array, loss)
+    end
+    # Tell sciml_train to not halt the optimization.
+    # If return true, then optimization stops.
     return false
 end
 
-function plot_callback_subplt(bl, p, loss; input_sample = nothing, plot_options...)
+function plot_callback_subplt(bl, p, loss; input_sample = nothing, fig_name = nothing, plot_options...)
       display(loss)
       colors_list = ["blue", "red", "green", "orange", "aqua", "coral", "darkorange", "deeppink", "cyan", "maroon"]
       isnothing(input_sample) ? input_sample = rand(1:bl.N_samples) : nothing
@@ -51,6 +57,9 @@ function plot_callback_subplt(bl, p, loss; input_sample = nothing, plot_options.
                 j+=1
           end
           display(plt)
+      end
+      if !isnothing(fig_name)
+          savefig(fig_name)
       end
     # Tell sciml_train to not halt the optimization. If return true, then
     # optimization stops.

@@ -41,11 +41,12 @@ l = bac_10(p_initial) # 1713
 l = bac_10(p_initial; abstol=1e-2, reltol=1e-2) # 1868
 
 # Plot callback plots the solutions passed to it:
-plot_callback(bac_10, p_initial, l, input_sample=5)
+samples = 1:3 # we can choose what samples to use for plots everywhere
+plot_callback(bac_10, p_initial, l, input_sample=samples)
 
-
+losses = zeros(0) # for plotting loss change over the course of optimization
 # Underlying the loss function is the output metric comparing the two trajectories:
-sol1, sol2 = solve_bl_n(bac_10, 3, p_initial)
+sol1, sol2 = solve_bl_n(bac_10, 3, p_initial, input_sample=samples)
 bac_10.output_metric(sol1, sol2)
 
 # We can get all the individual contributions with
@@ -58,12 +59,10 @@ il = individual_losses(bac_10, p_initial)
     DiffEqFlux.ADAM(0.5),
     maxiters = 5,
     #cb = basic_bac_callback
-    cb = (p, l) -> plot_callback(bac_10, p, l, 1)
+    cb = (p, l) -> plot_callback(bac_10, p, l, loss_array = losses, input_sample=samples, fig_name = "../graphics/res$(l).png")
     )
 
 p = plot_callback(bac_10, res_10.minimizer, l)
-savefig("../graphics/sample9_10.png")
-##
 
 # Train with 10 samples, medium accuracy and still large ADAM step size:
 @time res_10 = DiffEqFlux.sciml_train(
@@ -71,12 +70,9 @@ savefig("../graphics/sample9_10.png")
     res_10.minimizer,
     DiffEqFlux.ADAM(0.5),
     maxiters = 20,
-    cb = basic_bac_callback
-    # cb = (p, l) -> plot_callback(bac_10, p, l)
+    #cb = basic_bac_callback
+    cb = (p, l) -> plot_callback(bac_10, p, l, loss_array = losses, input_sample = samples, fig_name = "../graphics/res$(l).png")
     )
-
-plot_callback(bac_10, res_10.minimizer, l, input_sample = 8)
-savefig("../graphics/sample9_10.png")
 
 @time res_10 = DiffEqFlux.sciml_train(
     p -> bac_10(p),
@@ -84,11 +80,8 @@ savefig("../graphics/sample9_10.png")
     DiffEqFlux.ADAM(0.5),
     maxiters = 20,
     cb = basic_bac_callback
-    # cb = (p, l) -> plot_callback(bac_10, p, l)
+    # cb = (p, l) -> plot_callback(bac_10, p, l, input_sample=samples)
     )
-
-plot_callback(bac_10, res_10.minimizer, l)
-savefig("../graphics/sample9_10.png")
 
 # this got it down to 0.01 loss. we can look at the minimizer:
 # p_sys
@@ -148,7 +141,7 @@ plot_callback(bac_100, p_100_initial, l)
     )
 
 # Continue improving it for 150 Steps with some plotting in between:
-#=for i in 1:30
+for i in 1:30
     global res_100
     res_100 = DiffEqFlux.sciml_train(
         bac_100,
@@ -159,10 +152,8 @@ plot_callback(bac_100, p_100_initial, l)
         cb = basic_bac_callback
         )
     l = bac_100(res_100.minimizer);
-    #plot_callback(bac_100, res_100.minimizer, l)
-    #save plots to create optimization animation
-    plot_callback_save(bac_100, res_100.minimizer, l,"../graphics/res_100_int"*string(i, pad = 2)#=;ylims = (-0.5,0.5)=#)
-end=#
+    plot_callback(bac_100, res_100.minimizer, l,loss_array = losses, input_sample = samples, fig_name = "../graphics/res_100_int"*string(i, pad = 2)#=;ylims = (-0.5,0.5)=#)
+end
 
 ## Benchmarking
 
@@ -223,40 +214,3 @@ using StatsPlots
     bg = RGB(0.2, 0.2, 0.2)
 )
 ##
-
-
-######
-
-p_10_rs = ones(2*10+dim_sys)
-p_10_rs[1:dim_sys] .= res_10.minimizer[1:dim_sys]
-p_10_rs[dim_sys+1:end] .= repeat(res_10.minimizer[dim_sys+1:dim_sys+2], 10)
-
-bac_10_rs = resample(rand_fourier_input_generator, bac_10; n = 10)
-
-# Optimizing only the specs is a task linear in the number of samples,
-# the idea is that this will help with warming up the optimization
-# We can also study the quality of the tuning found by the optimization based on a small number of Samples
-p_10_rs_initial = bac_spec_only(bac_10_rs, p_10_rs;
-                    optimizer=DiffEqFlux.ADAM(0.1),
-                    optimizer_options=(:maxiters => 10,),
-                    abstol = 1e-3, reltol=1e-3)
-losses_10_rs_initial = individual_losses(bac_10_rs, p_10_rs_initial)
-# Todo: Indication of bug or not completely understood behaviour!!
-median(losses_10_rs_initial) # This is much larger (factor 5-10) than the losses_10_rs version. It shouldn't be. Needs to be investigated!!!!!
-# Possibility: THe optimization in bac_spec_only is not doing its job very well, switch to ADAM?
-plot_callback(bac_10_rs, p_10_rs_initial, l)
-savefig("../graphics/sample9_rs.png")
-
-# Train the full system:
-@time   res_10_rs = DiffEqFlux.sciml_train(
-    bac_10_rs,
-    p_10_rs_initial,
-    # DiffEqFlux.ADAM(0.5),
-    DiffEqFlux.BFGS(initial_stepnorm = 0.01),
-    maxiters = 5,
-    cb = basic_bac_callback
-    )
-
-plot_callback(bac_10_rs, res_10_rs.minimizer, l)
-
-savefig("../graphics/sample8_rs_new.png")
