@@ -73,8 +73,8 @@ function plot_callback_offset(bl, p, loss; loss_array = nothing, input_sample = 
         j = 1
         for i in input_sample
               dd_sys, dd_spec = solve_bl_n(bl, i, p)
-              plot!(dd_sys.t, dd_sys'[:,1].+2*(j-1), vars=1; label = "System output (sample $i)", color=colors_list[j], yaxis = nothing, plot_options...)
-              plot!(plt, dd_spec.t, dd_spec'[:,1].+2*(j-1), vars=1; label = "Specification output (sample $i))", color=colors_list[j], linestyle = :dash, plot_options...)
+              plot!(dd_sys.t, dd_sys[1,:].+2*(j-1), vars=1; label = "System output (sample $i)", color=colors_list[j], yaxis = nothing, plot_options...)
+              plot!(plt, dd_spec.t, dd_spec[1,:].+2*(j-1), vars=1; label = "Specification output (sample $i))", color=colors_list[j], linestyle = :dash, plot_options...)
               #plot!(plt, dd_spec.t, bl.input_sample[i]; c=colors_list[j], alpha=0.8, label = "Input $i", linestyle = :dot, plot_options...)
               j+=1
         end
@@ -92,4 +92,4 @@ function plot_callback_offset(bl, p, loss; loss_array = nothing, input_sample = 
     return false
 end
 
-plot_callback_offset(bac_10, res_10.minimizer, l, input_sample = 1:2)
+test_palette = [palette(:tab20)[Int(floor((i+1)/2))] for i in 1:2*length(palette(:tab20))]

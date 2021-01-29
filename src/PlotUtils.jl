@@ -1,7 +1,6 @@
 function plot_callback(bl, p, loss; loss_array = nothing, input_sample = nothing, fig_name = nothing, plot_options...)
     display(loss)
     offset = 2
-    colors_list = ["blue", "red", "green", "orange", "blue1"]
     plt = plot()
     isnothing(input_sample) ? input_sample = rand(1:bl.N_samples) : nothing
     if length(input_sample) == 1
@@ -15,8 +14,8 @@ function plot_callback(bl, p, loss; loss_array = nothing, input_sample = nothing
         j = 1
         for i in input_sample
               dd_sys, dd_spec = solve_bl_n(bl, i, p)
-              plot!(dd_sys.t, dd_sys[1,:].+offset*(j-1), vars=1; label = "System output (sample $i)", color=colors_list[j], yaxis = nothing, plot_options...)
-              plot!(plt, dd_spec.t, dd_spec[1,:].+offset*(j-1), vars=1; label = "Specification output (sample $i))", color=colors_list[j], linestyle = :dash, plot_options...)
+              plot!(dd_sys.t, dd_sys[1,:].+offset*(j-1), vars=1; label = "System output (sample $i)", color_palette = :tab20, yaxis = nothing, plot_options...)
+              plot!(plt, dd_spec.t, dd_spec[1,:].+offset*(j-1), vars=1; label = "Specification output (sample $i))", linestyle = :dash, plot_options...)
               #plot!(plt, dd_spec.t, bl.input_sample[i]; c=colors_list[j], alpha=0.8, label = "Input $i", linestyle = :dot, plot_options...)
               j+=1
         end
@@ -36,7 +35,6 @@ end
 
 function plot_callback_subplt(bl, p, loss; input_sample = nothing, fig_name = nothing, plot_options...)
       display(loss)
-      colors_list = ["blue", "red", "green", "orange", "aqua", "coral", "darkorange", "deeppink", "cyan", "maroon"]
       isnothing(input_sample) ? input_sample = rand(1:bl.N_samples) : nothing
       if length(input_sample) == 1
             dd_sys, dd_spec = solve_bl_n(bl, input_sample[1], p)
@@ -48,12 +46,12 @@ function plot_callback_subplt(bl, p, loss; input_sample = nothing, fig_name = no
       else
           j = 1
           plt = plot(layout = (length(input_sample),1))
-          pl = [plot() for i in 1:length(input_sample)]
+          #pl = [plot() for i in 1:length(input_sample)]
           for i in input_sample
                 dd_sys, dd_spec = solve_bl_n(bl, i, p)
-                plot!(plt, dd_sys, vars=1; label = "System output (sample $i)", color=colors_list[j], subplot = j, plot_options...)
-                plot!(plt, dd_spec, vars=1; label = "Specification output (sample $i))", color=colors_list[j], linestyle = :dash, subplot = j, plot_options...)
-                plot!(plt, dd_spec.t, bl.input_sample[i]; c=colors_list[j], alpha=0.8, label = "Input $i", linestyle = :dot, subplot = j, title = ("Input sample $i"), plot_options...)
+                plot!(plt, dd_sys, vars=1; label = "System output (sample $i)", c = palette(:tab20)[2*i-1], subplot = j, plot_options...)
+                plot!(plt, dd_spec, vars=1; label = "Specification output (sample $i))", c = palette(:tab20)[2*i], linestyle = :dash, subplot = j, plot_options...)
+                plot!(plt, dd_spec.t, bl.input_sample[i]; c=:gray, alpha=0.5, label = "Input $i", subplot = j, title = ("Input sample $i"), plot_options...)
                 #title!("Input samples $i")
                 j+=1
           end
