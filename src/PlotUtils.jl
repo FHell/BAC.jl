@@ -1,5 +1,6 @@
 function plot_callback(bl, p, loss; loss_array = nothing, input_sample = nothing, fig_name = nothing, plot_options...)
     display(loss)
+    offset = 2
     colors_list = ["blue", "red", "green", "orange", "blue1"]
     plt = plot()
     isnothing(input_sample) ? input_sample = rand(1:bl.N_samples) : nothing
@@ -14,9 +15,9 @@ function plot_callback(bl, p, loss; loss_array = nothing, input_sample = nothing
         j = 1
         for i in input_sample
               dd_sys, dd_spec = solve_bl_n(bl, i, p)
-              plot!(dd_sys, vars=1; label = "System output (sample $i)", color=colors_list[j], plot_options...)
-              plot!(plt, dd_spec, vars=1; label = "Specification output (sample $i))", color=colors_list[j], linestyle = :dash, plot_options...)
-              plot!(plt, dd_spec.t, bl.input_sample[i]; c=colors_list[j], alpha=0.8, label = "Input $i", linestyle = :dot, plot_options...)
+              plot!(dd_sys.t, dd_sys[1,:].+offset*(j-1), vars=1; label = "System output (sample $i)", color=colors_list[j], yaxis = nothing, plot_options...)
+              plot!(plt, dd_spec.t, dd_spec[1,:].+offset*(j-1), vars=1; label = "Specification output (sample $i))", color=colors_list[j], linestyle = :dash, plot_options...)
+              #plot!(plt, dd_spec.t, bl.input_sample[i]; c=colors_list[j], alpha=0.8, label = "Input $i", linestyle = :dot, plot_options...)
               j+=1
         end
         title!("Input samples $(input_sample)")
