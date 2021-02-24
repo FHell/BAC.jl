@@ -14,7 +14,7 @@ function plot_callback(bl, p, loss; loss_array = nothing, input_sample = nothing
         j = 1
         for i in input_sample
               dd_sys, dd_spec = solve_bl_n(bl, i, p)
-              plot!(dd_sys.t, dd_sys[1,:].+offset*(j-1), vars=1; label = "System output (sample $i)", color_palette = :tab20, yaxis = nothing, plot_options...)
+              plot!(dd_sys.t, dd_sys[1,:].+offset*(j-1), vars=1; label = "System output (sample $i)", color_palette = :tab20, plot_options...) #yaxis = nothing
               plot!(plt, dd_spec.t, dd_spec[1,:].+offset*(j-1), vars=1; label = "Specification output (sample $i))", linestyle = :dash, plot_options...)
               #plot!(plt, dd_spec.t, bl.input_sample[i]; c=colors_list[j], alpha=0.8, label = "Input $i", linestyle = :dot, plot_options...)
               j+=1

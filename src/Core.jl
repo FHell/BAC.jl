@@ -165,3 +165,10 @@ end
     end
     return t, l
 end=#
+
+function confidence_interval(bac, p, delta)
+    losses = individual_losses(bac, p)
+    N = length(losses)
+    d = sum(losses[:].<delta)/N
+    return min(d+2/N+(d*(1-d)/N)^0.5,1)
+end

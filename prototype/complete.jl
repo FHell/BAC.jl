@@ -42,7 +42,7 @@ l = bac_10(p_initial; abstol=1e-2, reltol=1e-2) # 1868
 
 # Plot callback plots the solutions passed to it:
 samples = 1:3 # we can choose what samples to use for plots everywhere
-plot_callback(bac_10, p_initial, l, input_sample=samples)
+plot_callback(bac_10, p_initial, l, input_sample=samples, fig_name = "../graphics/initial123_l11.0517.png")
 
 losses = zeros(0) # for plotting loss change over the course of optimization
 # Underlying the loss function is the output metric comparing the two trajectories:
@@ -62,7 +62,7 @@ il = individual_losses(bac_10, p_initial)
     cb = (p, l) -> plot_callback(bac_10, p, l, loss_array = losses, input_sample=samples, fig_name = "../graphics/res$(l).png")
     )
 
-p = plot_callback(bac_10, res_10.minimizer, l)
+plot_callback(bac_10, res_10.minimizer, l, input_sample = 1:3)
 
 # Train with 10 samples, medium accuracy and still large ADAM step size:
 @time res_10 = DiffEqFlux.sciml_train(
@@ -71,7 +71,7 @@ p = plot_callback(bac_10, res_10.minimizer, l)
     DiffEqFlux.ADAM(0.5),
     maxiters = 20,
     #cb = basic_bac_callback
-    cb = (p, l) -> plot_callback(bac_10, p, l, loss_array = losses, input_sample = samples, fig_name = "../graphics/res$(l).png")
+    cb = (p, l) -> plot_callback(bac_10, p, l, input_sample = samples, fig_name = "../graphics/res$(l).png")
     )
 
 @time res_10 = DiffEqFlux.sciml_train(
@@ -83,6 +83,7 @@ p = plot_callback(bac_10, res_10.minimizer, l)
     # cb = (p, l) -> plot_callback(bac_10, p, l, input_sample=samples)
     )
 
+plot_callback(bac_10, res_10.minimizer, l; input_sample=samples, fig_name = "../graphics/opt_123-10_l0.2693_axis.png")
 # this got it down to 0.01 loss. we can look at the minimizer:
 # p_sys
 res_10.minimizer[1:dim_sys] |> relu |> println
@@ -127,8 +128,7 @@ losses_100_initial = individual_losses(bac_100, p_100_initial)
 # Todo: Indication of bug or not completely understood behaviour!!
 median(losses_100_initial) # This is much larger (factor 5-10) than the losses_10_rs version. It shouldn't be. Needs to be investigated!!!!!
 # Possibility: THe optimization in bac_spec_only is not doing its job very well, switch to ADAM?
-plot_callback(bac_100, p_100_initial, l)
-
+plot_callback(bac_100, p_100_initial, l, input_sample = samples)
 
 # Train the full system:
 @time   res_100 = DiffEqFlux.sciml_train(
@@ -152,9 +152,12 @@ for i in 1:30
         cb = basic_bac_callback
         )
     l = bac_100(res_100.minimizer);
-    plot_callback(bac_100, res_100.minimizer, l,loss_array = losses, input_sample = samples, fig_name = "../graphics/res_100_int"*string(i, pad = 2)#=;ylims = (-0.5,0.5)=#)
+    plot_callback(bac_100, res_100.minimizer, l, input_sample = 50:52, fig_name = "../graphics/res_100_int"*string(i, pad = 2)#=;ylims = (-0.5,0.5)=#)
 end
 
+plot_callback(bac_10, p_initial, l, input_sample = 1:10, legend = false, fig_name = "../graphics/for Frank/init_1-10_nolegend.png")
+plot_callback(bac_10, res_10.minimizer, l, input_sample = 1:10, legend=false, fig_name = "../graphics/for Frank/opt_1-10_nolegend.png")
+plot_callback(bac_100, res_100.minimizer, l, input_sample = 50:59)
 ## Benchmarking
 
 # Implement training with a set of optimizers
@@ -214,3 +217,12 @@ using StatsPlots
     bg = RGB(0.2, 0.2, 0.2)
 )
 ##
+
+
+confidence_interval(bac_100, res_100.minimizer, 0.3)
+
+plot(x, (x)->confidence_interval(bac_100, res_100.minimizer, x),
+    xlabel = "ε", ylabel="d_ρ,ε",legend=:bottomright,
+    label="Fraction of samples within set distance from specification")
+
+savefig("../graphics/confidence_int.png")
