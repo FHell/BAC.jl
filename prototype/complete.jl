@@ -218,11 +218,18 @@ using StatsPlots
 )
 ##
 
+losses = individual_losses(bac_100, res_100.minimizer)
+confidence_interval(losses, 0.3)
 
-confidence_interval(bac_100, res_100.minimizer, 0.3)
+plot(x, (x)->confidence_interval(losses, x)[1],
+    xlabel = "ε", ylabel="d_ρ,ε",legend=:bottomright, label=false,c=:blue)
+    #label="Fraction of samples within set distance from specification")
+    plot!(x, (x)->confidence_interval(losses, x)[2],
+        xlabel = "ε", ylabel="d_ρ,ε",legend=:bottomright, label=false, linestyle=:dash, c=:blue)
+        #label="Fraction of samples within set distance from specification")
+    plot!(x, (x)->confidence_interval(losses, x)[3],
+        xlabel = "ε", ylabel="d_ρ,ε",legend=:bottomright, label=false, linestyle=:dash, c=:blue)
+        #label="Fraction of samples within set distance from specification")
+savefig("../graphics/confidence_int_nolabel.png")
 
-plot(x, (x)->confidence_interval(bac_100, res_100.minimizer, x),
-    xlabel = "ε", ylabel="d_ρ,ε",legend=:bottomright,
-    label="Fraction of samples within set distance from specification")
-
-savefig("../graphics/confidence_int.png")
+plot(sort!(losses),[1:length(losses)]./length(losses), label = false)
