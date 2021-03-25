@@ -14,12 +14,18 @@ function plot_callback(bl, p, loss; loss_array = nothing, input_sample = nothing
         j = 1
         for i in input_sample
               dd_sys, dd_spec = solve_bl_n(bl, i, p)
-              plot!(dd_sys.t, dd_sys[1,:].+offset*(j-1), vars=1; label = "System output (sample $i)", color_palette = :tab20, plot_options...) #yaxis = nothing
-              plot!(plt, dd_spec.t, dd_spec[1,:].+offset*(j-1), vars=1; label = "Specification output (sample $i))", linestyle = :dash, plot_options...)
-              #plot!(plt, dd_spec.t, bl.input_sample[i]; c=colors_list[j], alpha=0.8, label = "Input $i", linestyle = :dot, plot_options...)
+              plot!(dd_sys.t, dd_sys[1,:].+offset*(j-1), vars=1; label = false, color_palette = :tab20, plot_options...) #yaxis = nothing "System output (sample $i)"
+              plot!(plt, dd_spec.t, dd_spec[1,:].+offset*(j-1), vars=1; label = false, linestyle = :dash, plot_options...) # "Specification output (sample $i))"
               j+=1
         end
-        title!("Input samples $(input_sample)")
+        plot!([0.,0.01],[0.,0.];label = "System output", c=:gray)
+        plot!([0.,0.01],[0.,0.];label = "Specification output", c=:gray, linestyle = :dash)
+        samples_line = ""
+        for s in @view samples[1:end-1]
+            samples_line*="$s, "
+        end
+        samples_line*="$(samples[end])"
+        title!("Samples "*samples_line)
         display(plt)
     end
     if !isnothing(fig_name)

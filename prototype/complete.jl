@@ -12,6 +12,7 @@ using Plots
 using LightGraphs
 using Statistics
 using DataFrames, Pipe
+using LaTeXStrings
 
 include("../src/Core.jl")
 include("../src/ExampleSystems.jl")
@@ -42,9 +43,9 @@ l = bac_10(p_initial; abstol=1e-2, reltol=1e-2) # 1868
 
 # Plot callback plots the solutions passed to it:
 samples = 1:3 # we can choose what samples to use for plots everywhere
-plot_callback(bac_10, p_initial, l, input_sample=samples, fig_name = "../graphics/initial123_l11.0517.png")
+plot_callback(bac_10, p_initial, l, input_sample=samples, fig_name = "../graphics/test/initial123_l$l.png")
 
-losses = zeros(0) # for plotting loss change over the course of optimization
+#losses = zeros(0) # for plotting loss change over the course of optimization
 # Underlying the loss function is the output metric comparing the two trajectories:
 sol1, sol2 = solve_bl_n(bac_10, 3, p_initial, input_sample=samples)
 bac_10.output_metric(sol1, sol2)
@@ -59,7 +60,7 @@ il = individual_losses(bac_10, p_initial)
     DiffEqFlux.ADAM(0.5),
     maxiters = 5,
     #cb = basic_bac_callback
-    cb = (p, l) -> plot_callback(bac_10, p, l, loss_array = losses, input_sample=samples, fig_name = "../graphics/res$(l).png")
+    cb = (p, l) -> plot_callback(bac_10, p, l, input_sample=samples, fig_name = "../graphics/test/res10_$(l).png")
     )
 
 plot_callback(bac_10, res_10.minimizer, l, input_sample = 1:3)
@@ -71,7 +72,7 @@ plot_callback(bac_10, res_10.minimizer, l, input_sample = 1:3)
     DiffEqFlux.ADAM(0.5),
     maxiters = 20,
     #cb = basic_bac_callback
-    cb = (p, l) -> plot_callback(bac_10, p, l, input_sample = samples, fig_name = "../graphics/res$(l).png")
+    cb = (p, l) -> plot_callback(bac_10, p, l, input_sample = samples, fig_name = "../graphics/test/res10_$(l).png")
     )
 
 @time res_10 = DiffEqFlux.sciml_train(
@@ -83,7 +84,7 @@ plot_callback(bac_10, res_10.minimizer, l, input_sample = 1:3)
     # cb = (p, l) -> plot_callback(bac_10, p, l, input_sample=samples)
     )
 
-plot_callback(bac_10, res_10.minimizer, l; input_sample=samples, fig_name = "../graphics/opt_123-10_l0.2693_axis.png")
+plot_callback(bac_10, res_10.minimizer, l; input_sample=samples, fig_name = "../graphics/test_opt_123-10_l$l.png")
 # this got it down to 0.01 loss. we can look at the minimizer:
 # p_sys
 res_10.minimizer[1:dim_sys] |> relu |> println
@@ -131,7 +132,7 @@ median(losses_100_initial) # This is much larger (factor 5-10) than the losses_1
 plot_callback(bac_100, p_100_initial, l, input_sample = samples)
 
 # Train the full system:
-@time   res_100 = DiffEqFlux.sciml_train(
+@time res_100 = DiffEqFlux.sciml_train(
     bac_100,
     p_100_initial,
     # DiffEqFlux.ADAM(0.5),
@@ -140,8 +141,8 @@ plot_callback(bac_100, p_100_initial, l, input_sample = samples)
     cb = basic_bac_callback
     )
 
-# Continue improving it for 150 Steps with some plotting in between:
-for i in 1:30
+# Continue improving it for 50 Steps with some plotting in between:
+for i in 1:10
     global res_100
     res_100 = DiffEqFlux.sciml_train(
         bac_100,
@@ -152,12 +153,14 @@ for i in 1:30
         cb = basic_bac_callback
         )
     l = bac_100(res_100.minimizer);
-    plot_callback(bac_100, res_100.minimizer, l, input_sample = 50:52, fig_name = "../graphics/res_100_int"*string(i, pad = 2)#=;ylims = (-0.5,0.5)=#)
+    plot_callback(bac_100, res_100.minimizer, l, input_sample = samples, fig_name = "../graphics/test_res_100_int"*string(i, pad = 2)#=;ylims = (-0.5,0.5)=#)
 end
 
-plot_callback(bac_10, p_initial, l, input_sample = 1:10, legend = false, fig_name = "../graphics/for Frank/init_1-10_nolegend.png")
-plot_callback(bac_10, res_10.minimizer, l, input_sample = 1:10, legend=false, fig_name = "../graphics/for Frank/opt_1-10_nolegend.png")
-plot_callback(bac_100, res_100.minimizer, l, input_sample = 50:59)
+#plot_callback(bac_10, res_10.minimizer, l, input_sample = samples, legend=false, fig_name = "../graphics/for Frank/opt_1-3_nolegend.png")
+
+#plot_callback(bac_10, p_initial, l, input_sample = 1:10, legend = false, fig_name = "../graphics/for Frank/init_1-10_nolegend.png")
+#plot_callback(bac_10, res_10.minimizer, l, input_sample = 1:10, legend=false, fig_name = "../graphics/for Frank/opt_1-10_nolegend.png")
+#plot_callback(bac_100, res_100.minimizer, l, input_sample = 50:59)
 ## Benchmarking
 
 # Implement training with a set of optimizers
@@ -217,19 +220,19 @@ using StatsPlots
     bg = RGB(0.2, 0.2, 0.2)
 )
 ##
-
+using LaTeXStrings
 losses = individual_losses(bac_100, res_100.minimizer)
 confidence_interval(losses, 0.3)
-
-plot(x, (x)->confidence_interval(losses, x)[1],
-    xlabel = "ε", ylabel="d_ρ,ε",legend=:bottomright, label=false,c=:blue)
+x= exp10.(range(log10(.01),stop=log10(0.2), length = 50))
+plot(x, (x)->1-confidence_interval(losses, x)[1],
+    xlabel = "ε", ylabel=L"\hat d^{\rho,\varepsilon}",legend=:bottomright, label=false,c=:blue)
     #label="Fraction of samples within set distance from specification")
-    plot!(x, (x)->confidence_interval(losses, x)[2],
-        xlabel = "ε", ylabel="d_ρ,ε",legend=:bottomright, label=false, linestyle=:dash, c=:blue)
+    plot!(x, (x)->1-confidence_interval(losses, x)[2],
+        xlabel = "ε", ylabel=L"\hat d^{\rho,\varepsilon}",legend=:bottomright, label=false, linestyle=:dash, c=:blue)
         #label="Fraction of samples within set distance from specification")
-    plot!(x, (x)->confidence_interval(losses, x)[3],
-        xlabel = "ε", ylabel="d_ρ,ε",legend=:bottomright, label=false, linestyle=:dash, c=:blue)
+    plot!(x, (x)->1-confidence_interval(losses, x)[3],
+        xlabel = "ε", ylabel=L"\hat d^{\rho,\varepsilon}",legend=:bottomright, label=false, linestyle=:dash, c=:blue)
         #label="Fraction of samples within set distance from specification")
-savefig("../graphics/confidence_int_nolabel.png")
+savefig("../graphics/confidence_int_nolabel_new.png")
 
 plot(sort!(losses),[1:length(losses)]./length(losses), label = false)
