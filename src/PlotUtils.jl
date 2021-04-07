@@ -1,59 +1,32 @@
-function plot_callback(bl, p, loss; loss_array = nothing, input_sample = nothing, fig_name = nothing, plot_options...)
+"""
+Plot trajectories of the first nodes of sys and spec, and display the loss.
+Parameters:
+- bl: BAC problem
+- p: array of sys and spec parameters, usually res.minimizer
+- loss: value of the output distance
+Optional parameters:
+- loss_array: array to append value of loss to. Can be used to plot progress of the optimization over iterations.
+- input_sample: number(s) of samples to be plotted. If not provided, a sample is chosen randomly.
+- fig_name: path and file name to save the plot. If not provided, plot is not saved.
+- offset: defines by how much each sample is offset from the previous one for better plot readability. If set to -1, all samples are plotted on subplots instead of a single figure.
+- plot_options: various plot options
+"""
+function plot_callback(bl, p, loss; loss_array=nothing, input_sample=nothing, fig_name=nothing, offset=2, plot_options...)
     display(loss)
-    offset = 2
     plt = plot()
     isnothing(input_sample) ? input_sample = rand(1:bl.N_samples) : nothing
     if length(input_sample) == 1
-          dd_sys, dd_spec = solve_bl_n(bl, input_sample[1], p)
-          plt = plot(dd_sys, vars=1; label = "System output", plot_options...)
-          plot!(plt, dd_spec, vars=1; label = "Specification output", plot_options...)
-          plot!(plt, dd_spec.t, bl.input_sample[input_sample[1]]; c=:gray, alpha=0.75, label = "Input", plot_options...)
-          title!("Input sample $(input_sample[1])")
-          display(plt)
+        dd_sys, dd_spec = solve_bl_n(bl, input_sample[1], p)
+        plt = plot(dd_sys, vars=1; label="System output", plot_options...)
+        plot!(plt, dd_spec, vars=1; label="Specification output", plot_options...)
+        plot!(plt, dd_spec.t, bl.input_sample[input_sample[1]]; c=:gray, alpha=0.75, label="Input", plot_options...)
+        title!("Input sample $(input_sample[1])")
+        display(plt)
     else
         j = 1
-        for i in input_sample
-              dd_sys, dd_spec = solve_bl_n(bl, i, p)
-              plot!(dd_sys.t, dd_sys[1,:].+offset*(j-1), vars=1; label = false, color_palette = :tab20, plot_options...) #yaxis = nothing "System output (sample $i)"
-              plot!(plt, dd_spec.t, dd_spec[1,:].+offset*(j-1), vars=1; label = false, linestyle = :dash, plot_options...) # "Specification output (sample $i))"
-              j+=1
-        end
-        plot!([0.,0.01],[0.,0.];label = "System output", c=:gray)
-        plot!([0.,0.01],[0.,0.];label = "Specification output", c=:gray, linestyle = :dash)
-        samples_line = ""
-        for s in @view samples[1:end-1]
-            samples_line*="$s, "
-        end
-        samples_line*="$(samples[end])"
-        title!("Samples "*samples_line)
-        display(plt)
-    end
-    if !isnothing(fig_name)
-        savefig(fig_name)
-    end
-    if !isnothing(loss_array)
-        append!(loss_array, loss)
-    end
-    # Tell sciml_train to not halt the optimization.
-    # If return true, then optimization stops.
-    return false
-end
-
-function plot_callback_subplt(bl, p, loss; input_sample = nothing, fig_name = nothing, plot_options...)
-      display(loss)
-      isnothing(input_sample) ? input_sample = rand(1:bl.N_samples) : nothing
-      if length(input_sample) == 1
-            dd_sys, dd_spec = solve_bl_n(bl, input_sample[1], p)
-            plt = plot(dd_sys, vars=1; label = "System output", plot_options...)
-            plot!(plt, dd_spec, vars=1; label = "Specification output", plot_options...)
-            plot!(plt, dd_spec.t, bl.input_sample[input_sample[1]]; c=:gray, alpha=0.75, label = "Input", plot_options...)
-            title!("Input sample $(input_sample[1])")
-            display(plt)
-      else
-          j = 1
-          plt = plot(layout = (length(input_sample),1))
-          #pl = [plot() for i in 1:length(input_sample)]
-          for i in input_sample
+        if offset == -1
+            plt = plot(layout = (length(input_sample),1))
+            for i in input_sample
                 dd_sys, dd_spec = solve_bl_n(bl, i, p)
                 plot!(plt, dd_sys, vars=1; label = "System output (sample $i)", c = palette(:tab20)[2*i-1], subplot = j, plot_options...)
                 plot!(plt, dd_spec, vars=1; label = "Specification output (sample $i))", c = palette(:tab20)[2*i], linestyle = :dash, subplot = j, plot_options...)
@@ -62,17 +35,33 @@ function plot_callback_subplt(bl, p, loss; input_sample = nothing, fig_name = no
                 j+=1
           end
           display(plt)
-      end
-      if !isnothing(fig_name)
+        else
+            for i in input_sample
+                dd_sys, dd_spec = solve_bl_n(bl, i, p)
+                plot!(dd_sys.t, dd_sys[1,:] .+ offset * (j - 1), vars=1; label=false, color_palette=:tab20, plot_options...) # yaxis = nothing "System output (sample $i)"
+                plot!(plt, dd_spec.t, dd_spec[1,:] .+ offset * (j - 1), vars=1; label=false, linestyle=:dash, plot_options...) # "Specification output (sample $i))"
+                j += 1
+            end
+            plot!([0.,0.01], [0.,0.];label="System output", c=:gray)
+            plot!([0.,0.01], [0.,0.];label="Specification output", c=:gray, linestyle=:dash)
+            samples_line = ""
+            for s in @view input_sample[1:end - 1]
+                samples_line *= "$s, "
+            end
+            samples_line *= "$(input_sample[end])"
+            title!("Samples " * samples_line)
+            display(plt)
+        end
+      
+    end
+    if !isnothing(fig_name)
           savefig(fig_name)
-      end
-    # Tell sciml_train to not halt the optimization. If return true, then
-    # optimization stops.
-      return false
-end
-
-function plot_callback_save(bl, p, loss, fig_name; plot_options...)
-    png(plot_callback(bl, p, loss; plot_options...), fig_name)
+    end
+    if !isnothing(loss_array)
+          append!(loss_array, loss)
+    end
+      # Tell sciml_train to not halt the optimization.
+      # If return true, then optimization stops.
     return false
 end
 

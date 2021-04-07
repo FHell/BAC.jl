@@ -1,6 +1,11 @@
 import Base.@kwdef
 
 export BAC_Loss
+"""
+Structure, containing a probabilistic behavioural control problem.
+
+
+"""
 @kwdef mutable struct BAC_Loss
     f_spec # f(dy, y, i, p, t)
     f_sys
@@ -47,6 +52,14 @@ function (bl::BAC_Loss)(n, p_sys, p_spec; solver_options...)
 end
 
 export solve_sys_spec
+"""
+Solve for spec only.
+Parameters:
+- bl: existing bac_loss instance
+- i: input to the system
+- p_sys: parameters of the system
+- p_spec: parameters of specification
+"""
 function solve_sys_spec(bl, i, p_sys, p_spec; solver_options...)
     dd_sys = solve(ODEProblem((dy,y,p,t) -> bl.f_sys(dy, y, i(t), p, t), bl.y0_sys, bl.t_span, p_sys), bl.solver; saveat=bl.tsteps, solver_options...)
     dd_spec = solve(ODEProblem((dy,y,p,t) -> bl.f_spec(dy, y, i(t), p, t), bl.y0_spec, bl.t_span, p_spec), bl.solver; saveat=bl.tsteps, solver_options...)
@@ -54,7 +67,14 @@ function solve_sys_spec(bl, i, p_sys, p_spec; solver_options...)
 end
 
 export solve_bl_n
-function solve_bl_n(bl, n::Int, p; solver_options...)
+"""
+Solve PBC problem for a specific input.
+Parameters:
+- bl: existing bac_loss instance
+- n: number of input in the array
+- p: combined array of sys and spec parameters
+"""
+function solve_bl_n(bl::BAC_Loss, n::Int, p; solver_options...)
     @views begin
         p_sys = p[1:bl.dim_sys]
         p_spec = p[bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec]
@@ -66,6 +86,14 @@ function solve_bl_n(bl, n::Int, p; solver_options...)
 end
 
 export bac_spec_only
+"""
+Optimize spec parameters only. Can be used to check quality of the resulting minimizer and evaluate over-fitting. 
+This function can be used to fit an already optimized system to a new sample of inputs.
+Parameters:
+- bl: BAC problem
+- p_initial: array of parameters to begin optimization with
+- optimizer: choose optimization algorithm (optinal)
+""" 
 function bac_spec_only(bl::BAC_Loss, p_initial; optimizer=DiffEqFlux.ADAM(0.01), optimizer_options=(:maxiters => 100,), solver_options...)
     # Optimize the specs only
 
@@ -92,6 +120,13 @@ println(p_specs)
 end
 
 export matching_loss
+"""
+Evalute the loss function of the matching of the spec ODE to the system ODE.
+This means for all input samples we take the same p_spec.
+Parameters:
+- bl: existing bac_loss instance
+- p: combined array of sys and spec parameters
+"""
 function matching_loss(bl::BAC_Loss, p; solver_options...)
     # Evalute the loss function of the matching of the spec ODE to the system ODE
     # This means for all input samples we take the same P_spec
@@ -112,6 +147,12 @@ function matching_loss(bl::BAC_Loss, p; solver_options...)
 end
 
 export individual_losses
+"""
+Evaluate individual losses for each input.
+Parameters:
+- bl: existing bac_loss instance
+- p: combined array of sys and spec parameters 
+"""
 function individual_losses(bl::BAC_Loss, p)
     # Return the array of losses
     @views begin
@@ -125,6 +166,13 @@ end
 
 # Resampling the BAC_Loss
 export resample
+"""
+Generate a new set of inputs.
+Parameters:
+- sampler: generator of inputs
+- bac: PBC problem to be resampled
+- n: number of samples. If not provided, bac.N_samples is used instead
+"""
 function resample(sampler, bac::BAC_Loss; n = 0)
     if n > 0
         bac.N_samples = n
@@ -136,10 +184,11 @@ end
 # Basic callback
 
 export basic_bac_callback
+"""
+Quick callback function to be used in the sciml_train optimization process. Displays current loss.
+"""
 function basic_bac_callback(p, loss)
     display(loss)
-    # Tell sciml_train to not halt the optimization. If return true, then
-    # optimization stops.
     return false
 end
 
