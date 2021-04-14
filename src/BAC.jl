@@ -6,6 +6,7 @@ using OrdinaryDiffEq
 using Plots
 using LightGraphs
 using Statistics
+using GraphPlot
 
 include("Core.jl")
 include("ExampleSystems.jl")

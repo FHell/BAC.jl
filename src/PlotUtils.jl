@@ -1,3 +1,4 @@
+export plot_callback
 """
 Plot trajectories of the first nodes of sys and spec, and display the loss.
 Parameters:
@@ -63,6 +64,24 @@ function plot_callback(bl, p, loss; loss_array=nothing, input_sample=nothing, fi
       # Tell sciml_train to not halt the optimization.
       # If return true, then optimization stops.
     return false
+end
+
+export plot_sys_graph
+"""
+Plot graph representations of optimized system and spec system.
+"""
+function plot_sys_graph(bl::BAC_Loss)
+    nodecolor = [colorant"orange", colorant"lightseagreen"]
+    nodefillc_sys = nodecolor[[1 for i in 1:bl.dim_sys]];
+    nodefillc_spec = nodecolor[[1 for i in 1:bl.dim_spec]];
+    nodefillc_sys[1] = nodecolor[2]
+    nodefillc_spec[1] = nodecolor[2]
+    L_sys = bl.f_sys.L
+    L_spec = bl.f_spec.L
+    g1 = gplot(SimpleGraph(L_sys), nodefillc=nodefillc_sys)
+    g2 = gplot(SimpleGraph(L_spec), nodefillc=nodefillc_spec)
+    display(g1)
+    display(g2)
 end
 
 function l_heatmap(p_1a,p_1b,p_2a,p_2b, p, bac; sample_number = 1, axis_1 = 1, axis_2 = 2, stepsize = 1, title="")
