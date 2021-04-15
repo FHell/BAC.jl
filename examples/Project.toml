@@ -2,5 +2,6 @@
 DiffEqFlux = "aae7a2af-3d4f-5e19-a356-7da93b79d9d0"
 LightGraphs = "093fc24a-ae57-5d10-9952-331d41423f4d"
 OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
+Pipe = "b98c9c47-44ae-5843-9183-064241ee97a0"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"

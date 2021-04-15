@@ -159,6 +159,8 @@ end
 #plot_callback(bac_10, p_initial, l, input_sample = 1:10, legend = false, fig_name = "../graphics/for Frank/init_1-10_nolegend.png")
 #plot_callback(bac_10, res_10.minimizer, l, input_sample = 1:10, legend=false, fig_name = "../graphics/for Frank/opt_1-10_nolegend.png")
 #plot_callback(bac_100, res_100.minimizer, l, input_sample = 50:59)
+
+
 ## Benchmarking
 
 # Implement training with a set of optimizers

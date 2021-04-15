@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Simple graph example · BAC.jl</title><link rel="canonical" href="https://fhell.github.io/BAC.jl/generated/simple_graph_example.html"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit">BAC.jl</span></div><form class="docs-search" action="../search.html"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><span class="tocitem">Examples</span><ul><li class="is-active"><a class="tocitem" href="simple_graph_example.html">Simple graph example</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href="simple_graph_example.html">Simple graph example</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href="simple_graph_example.html">Simple graph example</a></li></ul></nav><div class="docs-right"><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><pre><code class="language-">using BAC
+
+using Random
+using Plots
+Random.seed!(42);
+using GraphPlot
+using DiffEqFlux
+
+dim_sys = 10
+
+bac_10 = BAC.create_graph_example(dim_sys, 3, 0.:0.1:10., 10)</code></pre><p>we can easily plot the input samples and system layouts</p><pre><code class="language-">plot(0:0.01:10, bac_10.input_sample, c=:gray, alpha=1, legend=false)
+BAC.plot_sys_graph(bac_10)</code></pre><p>a nonlinear diffusively coupled graph system. Specification is a two node version of the graph. =&gt; Can we make a large graph react like a small graph by tuning the non-linearity at the nodes?</p><pre><code class="language-julia">p_initial = ones(2*10+dim_sys)
+
+# Finished initialization</code></pre><p>bac_1 implements the loss function. We are looking for parameters that minimize it, it can be evaluated directly on a parameter array:</p><pre><code class="language-">l = bac_10(p_initial) # 1713
+l = bac_10(p_initial; abstol=1e-2, reltol=1e-2) # 1868</code></pre><p>Plot callback plots the solutions passed to it:</p><pre><code class="language-">samples = 1:3 # we can choose what samples to use for plots everywhere
+BAC.plot_callback(bac_10, p_initial, l, input_sample=samples)
+
+losses = zeros(0) # for plotting loss change over the course of optimization</code></pre><p>Underlying the loss function is the output metric comparing the two trajectories:</p><pre><code class="language-">sol1, sol2 = solve_bl_n(bac_10, 3, p_initial, input_sample=samples)
+bac_10.output_metric(sol1, sol2)</code></pre><p>We can get all the individual contributions with</p><pre><code class="language-">il = individual_losses(bac_10, p_initial)</code></pre><p>Train with 10 samples, low accuracy and relatively large ADAM step size: (1.5 minutes on my Laptop)</p><pre><code class="language-">@time res_10 = DiffEqFlux.sciml_train(
+    p -&gt; bac_10(p; abstol=1e-2, reltol=1e-2),
+    p_initial,
+    DiffEqFlux.ADAM(0.5),
+    maxiters = 5,
+    #cb = basic_bac_callback
+    cb = (p, l) -&gt; plot_callback(bac_10, p, l, input_sample=samples)
+    )
+
+plot_callback(bac_10, res_10.minimizer, l, input_sample = 1:3)</code></pre><p>Train with 10 samples, medium accuracy and still large ADAM step size:</p><pre><code class="language-">@time res_10 = DiffEqFlux.sciml_train(
+    p -&gt; bac_10(p; abstol=1e-6, reltol=1e-6),
+    res_10.minimizer,
+    DiffEqFlux.ADAM(0.5),
+    maxiters = 20,
+    #cb = basic_bac_callback
+    cb = (p, l) -&gt; plot_callback(bac_10, p, l, input_sample = samples)
+    )
+
+@time res_10 = DiffEqFlux.sciml_train(
+    p -&gt; bac_10(p),
+    res_10.minimizer,
+    DiffEqFlux.ADAM(0.5),
+    maxiters = 20,
+    cb = basic_bac_callback</code></pre><p>cb = (p, l) -&gt; plot<em>callback(bac</em>10, p, l, input_sample=samples)</p><pre><code class="language-julia">    )
+
+plot_callback(bac_10, res_10.minimizer, l; input_sample=samples, fig_name = &quot;../graphics/opt_123-10_l$(l)_axis.png&quot;)</code></pre><p>this got it down to 0.01 loss. we can look at the minimizer: p_sys</p><pre><code class="language-">res_10.minimizer[1:dim_sys] |&gt; relu |&gt; println</code></pre><p>p_spec</p><pre><code class="language-">res_10.minimizer[dim_sys+1:end] |&gt; relu |&gt; println</code></pre><p>After a few runs of the above code block (trying both larger and smaller ADAM step sizes) I get this down to &lt; 0.3 At this point I don&#39;t really care about going further as we are probably overfitting to the small sample.</p><p>We can check the quality of the resulting minimizer by optimizing the specs only (a much simpler repeated 2d optimization problem)</p><pre><code class="language-">p2 = bac_spec_only(bac_10, res_10.minimizer)
+losses = individual_losses(bac_10, p2)
+median(losses) #0.02</code></pre><p>In order to understand how much we were overfitting with respect to the concrete sample, we resample That is, we generate a new problem with a new sample from the same distribution:</p><pre><code class="language-">bac_10_rs = resample(rand_fourier_input_generator, bac_10)
+p3 = bac_spec_only(bac_10_rs, res_10.minimizer)
+losses_rs = individual_losses(bac_10_rs, p3)
+median(losses_rs) #0.04</code></pre><p>This will give us information on the system tuning with a sample different from the one that the tuning was optimized for.</p><pre><code class="language-julia"># Larger number of samples</code></pre><p>We warmed up the optimization with a very small number of samples, we can now initialize a higher sampled optimization using the system parameters found in the lower one:</p><pre><code class="language-">p_100 = ones(2*100+dim_sys)
+p_100[1:dim_sys] .= res_10.minimizer[1:dim_sys]
+p_100[dim_sys+1:end] .= repeat(res_10.minimizer[dim_sys+1:dim_sys+2], 100)
+
+bac_100 = resample(rand_fourier_input_generator, bac_10; n = 100)</code></pre><p>Optimizing only the specs is a task linear in the number of samples, the idea is that this will help with warming up the optimization We can also study the quality of the tuning found by the optimization based on a small number of Samples</p><pre><code class="language-">p_100_initial = bac_spec_only(bac_100, p_100;
+                    optimizer=DiffEqFlux.ADAM(0.1),
+                    optimizer_options=(:maxiters =&gt; 10,),
+                    abstol = 1e-3, reltol=1e-3)
+losses_100_initial = individual_losses(bac_100, p_100_initial)</code></pre><p>Todo: Indication of bug or not completely understood behaviour!!</p><pre><code class="language-">median(losses_100_initial) # This is much larger (factor 5-10) than the losses_10_rs version. It shouldn&#39;t be. Needs to be investigated!!!!!</code></pre><p>Possibility: THe optimization in bac<em>spec</em>only is not doing its job very well, switch to ADAM?</p><pre><code class="language-">plot_callback(bac_100, p_100_initial, l, input_sample = samples)</code></pre><p>Train the full system:</p><pre><code class="language-">@time   res_100 = DiffEqFlux.sciml_train(
+    bac_100,
+    p_100_initial,</code></pre><p>DiffEqFlux.ADAM(0.5),</p><pre><code class="language-">    DiffEqFlux.BFGS(initial_stepnorm = 0.01),
+    maxiters = 5,
+    cb = basic_bac_callback
+    )</code></pre><p>Continue improving it for 50 Steps with some plotting in between:</p><pre><code class="language-">for i in 1:10
+    global res_100
+    res_100 = DiffEqFlux.sciml_train(
+        bac_100,
+        relu.(res_100.minimizer),
+        DiffEqFlux.ADAM(0.1),</code></pre><p>DiffEqFlux.BFGS(initial_stepnorm = 0.01),</p><pre><code class="language-">        maxiters = 5,
+        cb = basic_bac_callback
+        )
+    l = bac_100(res_100.minimizer);
+    plot_callback(bac_100, res_100.minimizer, l, input_sample = 50:52, fig_name = &quot;../graphics/res_100_int&quot;*string(i, pad = 2)#=;ylims = (-0.5,0.5)=#)
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Wednesday 14 April 2021 16:54">Wednesday 14 April 2021</span>. Using Julia version 1.5.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

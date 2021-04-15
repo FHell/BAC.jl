@@ -1,0 +1,6 @@
+[deps]
+BAC = "e5bcb881-1a23-4832-befa-34c64c895223"
+DiffEqFlux = "aae7a2af-3d4f-5e19-a356-7da93b79d9d0"
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+Literate = "98b081ad-f1c9-55d3-8b20-4c87d4299306"
+Pipe = "b98c9c47-44ae-5843-9183-064241ee97a0"
