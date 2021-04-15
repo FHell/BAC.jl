@@ -35,7 +35,7 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/FHell/BAC.jl",
+    repo="github.com/FHell/BAC.jl.git",
     devbranch="main",
     # push_preview=true,
 )
