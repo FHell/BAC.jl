@@ -35,6 +35,8 @@ function plot_callback(bl, p, loss; loss_array=nothing, input_sample=nothing, fi
                 #title!("Input samples $i")
                 j+=1
           end
+          xlabel!("t")
+          ylabel!("output")
           display(plt)
         else
             for i in input_sample
@@ -51,6 +53,8 @@ function plot_callback(bl, p, loss; loss_array=nothing, input_sample=nothing, fi
             end
             samples_line *= "$(input_sample[end])"
             title!("Samples " * samples_line)
+            xlabel!("t")
+            ylabel!("output")
             display(plt)
         end
       
