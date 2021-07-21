@@ -14,10 +14,10 @@ using Statistics
 using DataFrames, Pipe
 using LaTeXStrings
 
-include("../src/Core.jl")
-include("../src/ExampleSystems.jl")
-include("../src/PlotUtils.jl")
-include("../src/Benchmark.jl")
+include("src/Core.jl")
+include("src/ExampleSystems.jl")
+include("src/PlotUtils.jl")
+include("src/Benchmark.jl")
 
 Random.seed!(42);
 
@@ -42,37 +42,37 @@ l = bac_10(p_initial) # 1713
 l = bac_10(p_initial; abstol=1e-2, reltol=1e-2) # 1868
 
 # Plot callback plots the solutions passed to it:
-samples = 1:3 # we can choose what samples to use for plots everywhere
-plot_callback(bac_10, p_initial, l, input_sample=samples, fig_name = "../graphics/initial123_l11.0517.png")
+scenarios = 1:3 # we can choose what scenarios to use for plots everywhere
+plot_callback(bac_10, p_initial, l, scenario_nums=scenarios)
 
 losses = zeros(0) # for plotting loss change over the course of optimization
 # Underlying the loss function is the output metric comparing the two trajectories:
-sol1, sol2 = solve_bl_n(bac_10, 3, p_initial, input_sample=samples)
+sol1, sol2 = solve_bl_n(bac_10, 3, p_initial, scenario_nums=scenarios)
 bac_10.output_metric(sol1, sol2)
 
 # We can get all the individual contributions with
 il = individual_losses(bac_10, p_initial)
 
-# Train with 10 samples, low accuracy and relatively large ADAM step size: (1.5 minutes on my Laptop)
+# Train with 10 scenarios, low accuracy and relatively large ADAM step size: (1.5 minutes on my Laptop)
 @time res_10 = DiffEqFlux.sciml_train(
     p -> bac_10(p; abstol=1e-2, reltol=1e-2),
     p_initial,
     DiffEqFlux.ADAM(0.5),
     maxiters = 5,
     #cb = basic_bac_callback
-    cb = (p, l) -> plot_callback(bac_10, p, l, loss_array = losses, input_sample=samples, fig_name = "../graphics/res$(l).png")
+    cb = (p, l) -> plot_callback(bac_10, p, l, scenario_nums=scenarios, fig_name = "graphics/res$(l).png")
     )
 
-plot_callback(bac_10, res_10.minimizer, l, input_sample = 1:3)
+plot_callback(bac_10, res_10.minimizer, res_10.minimum, scenario_nums = 1:3)
 
-# Train with 10 samples, medium accuracy and still large ADAM step size:
+# Train with 10 scenarios, medium accuracy and still large ADAM step size:
 @time res_10 = DiffEqFlux.sciml_train(
     p -> bac_10(p; abstol=1e-6, reltol=1e-6),
     res_10.minimizer,
     DiffEqFlux.ADAM(0.5),
     maxiters = 20,
     #cb = basic_bac_callback
-    cb = (p, l) -> plot_callback(bac_10, p, l, input_sample = samples, fig_name = "../graphics/res$(l).png")
+    cb = (p, l) -> plot_callback(bac_10, p, l, scenario_nums = scenarios, fig_name = "graphics/res$(l).png")
     )
 
 @time res_10 = DiffEqFlux.sciml_train(
@@ -81,10 +81,10 @@ plot_callback(bac_10, res_10.minimizer, l, input_sample = 1:3)
     DiffEqFlux.ADAM(0.5),
     maxiters = 20,
     cb = basic_bac_callback
-    # cb = (p, l) -> plot_callback(bac_10, p, l, input_sample=samples)
+    # cb = (p, l) -> plot_callback(bac_10, p, l, scenario_nums=scenarios)
     )
 
-plot_callback(bac_10, res_10.minimizer, l; input_sample=samples, fig_name = "../graphics/opt_123-10_l$(l)_axis.png")
+plot_callback(bac_10, res_10.minimizer, l; scenario_nums=scenarios, fig_name = "graphics/opt_123-10_l$(l)_axis.png")
 # this got it down to 0.01 loss. we can look at the minimizer:
 # p_sys
 res_10.minimizer[1:dim_sys] |> relu |> println
@@ -118,7 +118,7 @@ p_100[dim_sys+1:end] .= repeat(res_10.minimizer[dim_sys+1:dim_sys+2], 100)
 
 bac_100 = resample(rand_fourier_input_generator, bac_10; n = 100)
 
-# Optimizing only the specs is a task linear in the number of samples,
+# Optimizing only the specs is a task linear in the number of scenarios,
 # the idea is that this will help with warming up the optimization
 # We can also study the quality of the tuning found by the optimization based on a small number of Samples
 p_100_initial = bac_spec_only(bac_100, p_100;
@@ -129,7 +129,7 @@ losses_100_initial = individual_losses(bac_100, p_100_initial)
 # Todo: Indication of bug or not completely understood behaviour!!
 median(losses_100_initial) # This is much larger (factor 5-10) than the losses_10_rs version. It shouldn't be. Needs to be investigated!!!!!
 # Possibility: THe optimization in bac_spec_only is not doing its job very well, switch to ADAM?
-plot_callback(bac_100, p_100_initial, l, input_sample = samples)
+plot_callback(bac_100, p_100_initial, l, scenario_nums = scenarios)
 
 # Train the full system:
 @time   res_100 = DiffEqFlux.sciml_train(
@@ -141,7 +141,7 @@ plot_callback(bac_100, p_100_initial, l, input_sample = samples)
     cb = basic_bac_callback
     )
 
-# Continue improving it for 50 Steps with some plotting in between:
+# Continue improving it for 150 Steps with some plotting in between:
 for i in 1:10
     global res_100
     res_100 = DiffEqFlux.sciml_train(
@@ -153,12 +153,12 @@ for i in 1:10
         cb = basic_bac_callback
         )
     l = bac_100(res_100.minimizer);
-    plot_callback(bac_100, res_100.minimizer, l, input_sample = 50:52, fig_name = "../graphics/res_100_int"*string(i, pad = 2)#=;ylims = (-0.5,0.5)=#)
+    plot_callback(bac_100, res_100.minimizer, l, input_sample = 50:52, fig_name = "graphics/res_100_int"*string(i, pad = 2)#=;ylims = (-0.5,0.5)=#)
 end
 
-#plot_callback(bac_10, p_initial, l, input_sample = 1:10, legend = false, fig_name = "../graphics/for Frank/init_1-10_nolegend.png")
-#plot_callback(bac_10, res_10.minimizer, l, input_sample = 1:10, legend=false, fig_name = "../graphics/for Frank/opt_1-10_nolegend.png")
-#plot_callback(bac_100, res_100.minimizer, l, input_sample = 50:59)
+#plot_callback(bac_10, p_initial, l, scenario_nums = 1:10, legend = false, fig_name = "../graphics/for Frank/init_1-10_nolegend.png")
+#plot_callback(bac_10, res_10.minimizer, l, scenario_nums = 1:10, legend=false, fig_name = "../graphics/for Frank/opt_1-10_nolegend.png")
+#plot_callback(bac_100, res_100.minimizer, l, scenario_nums = 50:59)
 
 
 ## Benchmarking
@@ -223,17 +223,17 @@ using StatsPlots
 
 losses = individual_losses(bac_100, res_100.minimizer)
 
-x= exp10.(range(log10(.01),stop=log10(0.2), length = 50))
+x= exp10.(range(log10(.05),stop=log10(0.4), length = 50))
 plot(x, (x)->1-confidence_interval(losses, x)[1],
     xlabel = "ε", ylabel=L"\hat d^{\rho,\varepsilon}",legend=:bottomright, label=false,c=:blue)
-    #label="Fraction of samples within set distance from specification")
+    #label="Fraction of scenarios within set distance from specification")
     plot!(x, (x)->1-confidence_interval(losses, x)[2],
         xlabel = "ε", ylabel=L"\hat d^{\rho,\varepsilon}",legend=:bottomright, label=false, linestyle=:dash, c=:blue)
-        #label="Fraction of samples within set distance from specification")
+        #label="Fraction of scenarios within set distance from specification")
     plot!(x, (x)->1-confidence_interval(losses, x)[3],
         xlabel = "ε", ylabel=L"\hat d^{\rho,\varepsilon}",legend=:bottomright, label=false, linestyle=:dash, c=:blue)
-        #label="Fraction of samples within set distance from specification")
-savefig("../graphics/confidence_int_nolabel_new.png")
+        #label="Fraction of scenarios within set distance from specification")
+savefig("graphics/confidence_int_new.png")
 
 plot(sort!(losses),[1:length(losses)]./length(losses), label = false)
 

@@ -214,7 +214,7 @@ end
     end
     return t, l
 end=#
-
+export confidence_interval
 function confidence_interval(losses, delta)
     N = length(losses)+4
     d = (sum(losses[:].<delta)+2)/N
