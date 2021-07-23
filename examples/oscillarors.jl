@@ -34,13 +34,12 @@ mutable struct KuramotoOutputMetric
     n_spec
 end
 
-function create_curamoto_example(dim_sys, dim_spec, tsteps, N_samples)
-    #K_sys = rand(dim_sys)
-    @assert dim_sys == nv(g_sys)
+function create_curamoto_example(dim_sys, dim_spec, tsteps, N_samples; modes = 5)
+    #K_sys = rand(dim_sys) - if K was an optimization parameter
+
     # scale down the input by a factor of 0.1
     f_spec = kuramoto_osc(K, dim_spec, zeros(dim_spec))
-    B_sys = incidence_matrix(g_sys, oriented=true)
-    f_sys = swing_eq(K, dim_sys, zeros(dim_sys))
+    f_sys = kuramoto_osc(K, dim_sys, zeros(dim_sys))
 
     BAC_Loss(
         f_spec,
@@ -56,3 +55,4 @@ function create_curamoto_example(dim_sys, dim_spec, tsteps, N_samples)
         zeros(2dim_sys),
     )
 end
+
