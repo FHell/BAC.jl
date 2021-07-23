@@ -55,6 +55,18 @@ function create_kuramoto_example(dim_sys, dim_spec, tsteps, N_samples; modes = 5
     )
 end
 
+function (kur_met::KuramotoOutputMetric)(sol_sys, sol_spec)
+    if sol_sys.retcode == :Success && sol_spec.retcode == :Success
+        # match the first two phase angles to match the flow on the first link
+        # we take the phase at the first node as reference, so ϕ₁≡0
+        # the phase at the second node is then ϕ₂ = sol[3, :] .- sol[1, :]
+        # the loss function is then ∑ (ϕ₂-ϕ₂')^2 where ϕ₂' is the phase diff in the spec
+        return sum(x->x^2, (sol_sys[ last(kur_met.n_sys), :] .- sol_sys[first(kur_met.n_sys), :]) .- (sol_spec[ last(kur_met.n_spec), :] .- sol_spec[first(kur_met.n_spec), :]) )
+    else
+        return Inf # Solvers failing is bad.
+    end
+end
+
 kur = create_kuramoto_example(10,2,100,10)
 
 p_initial = ones(dim_sys + dim_spec * N_samples);
