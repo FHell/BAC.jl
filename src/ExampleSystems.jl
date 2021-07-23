@@ -1,4 +1,4 @@
-function rand_fourier_input_generator(nn, N=10)
+function rand_fourier_input_generator(nn; N=10)
     a = randn(N)
     theta = 2*pi*rand(N)
     return t -> sum([a[n]*cos(n*t+theta[n]) for n in 1:N])
