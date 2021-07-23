@@ -16,7 +16,7 @@ include("src/ExampleSystems.jl")
 include("src/PlotUtils.jl")
 include("src/Benchmark.jl")
 
-mutable struct kuramoto_osc{w, K, N, theta} #mutable for the development
+mutable struct kuramoto_osc{K, N, theta} #mutable for the development
     K::K
     N::N
     theta::theta
@@ -37,11 +37,10 @@ end
 function create_curamoto_example(dim_sys, dim_spec, tsteps, N_samples)
     #K_sys = rand(dim_sys)
     @assert dim_sys == nv(g_sys)
-
     # scale down the input by a factor of 0.1
-    f_spec = kuramoto_osc()
+    f_spec = kuramoto_osc(K, dim_spec, zeros(dim_spec))
     B_sys = incidence_matrix(g_sys, oriented=true)
-    f_sys = swing_eq(B_sys, B_sys', dim_sys, (-1).^(1:dim_sys), 8., 0.1)
+    f_sys = swing_eq(K, dim_sys, zeros(dim_sys))
 
     BAC_Loss(
         f_spec,
