@@ -74,15 +74,26 @@ Parameters:
 - n: number of input in the array
 - p: combined array of sys and spec parameters
 """
-function solve_bl_n(bl::BAC_Loss, n::Int, p; solver_options...)
-    @views begin
-        p_sys = p[1:bl.dim_sys]
-        p_spec = p[bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec]
+function solve_bl_n(bl::BAC_Loss, n::Int, p; dim=1, solver_options...)
+    if dim == 1
+        @views begin
+            p_sys = p[1:bl.dim_sys]
+            p_spec = p[bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec]
+        end
+
+        i = bl.input_sample[n]
+
+        solve_sys_spec(bl, i, p_sys, p_spec; solver_options...)
+    elseif dim == 2
+        @views begin
+            p_sys = p[1:bl.dim_sys, 1:bl.dim_sys]
+            p_spec = p[bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec, bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec]
+        end
+
+        i = bl.input_sample[n]
+
+        solve_sys_spec(bl, i, p_sys, p_spec; solver_options...)
     end
-
-    i = bl.input_sample[n]
-
-    solve_sys_spec(bl, i, p_sys, p_spec; solver_options...)
 end
 
 export bac_spec_only

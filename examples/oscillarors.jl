@@ -112,14 +112,14 @@ K_spec_init = 3*ones(dim_spec,dim_spec)
 #p_initial = [K_sys_init zeros(dim_sys, N_samples*dim_spec); zeros(N_samples*dim_spec, dim_sys+N_samples*dim_spec)]
 
 for i in 1:N_samples
-    p_initial[(dim_sys+2*i-1):(dim_sys+2*i), (dim_sys+2*i-1):(dim_sys+2*i)] = K_spec_init
+    p_initial[(dim_sys+dim_spec*i-1):(dim_sys+dim_spec*i), (dim_sys+dim_spec*i-1):(dim_sys+dim_spec*i)] = K_spec_init
 end
 
 kur(p_initial, dim = 2)
 #plot(kur.tsteps, kur.input_sample, c=:gray, alpha=1, legend=false)
 
 
-solve_sys_spec(kur, rand_fourier_input_generator(1), p_initial[1:dim_sys], p_initial[dim_sys:end])
+solve_sys_spec(kur, rand_fourier_input_generator(1), p_initial[1:dim_sys, 1:dim_sys], p_initial[dim_sys:end, dim_sys:end])
 
 res_10 = DiffEqFlux.sciml_train(
     p -> kur(p; abstol=1e-2, reltol=1e-2),
