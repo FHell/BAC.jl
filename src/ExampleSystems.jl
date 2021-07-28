@@ -9,6 +9,7 @@ relu(x) = max.(0., x)
 struct nl_diff_dyn{T}
     L::T
 end
+
 function (dd::nl_diff_dyn)(dx, x, i, p, t)
     flows = dd.L * x
     @. dx = x - relu(p) * x^3 - flows
@@ -20,6 +21,7 @@ mutable struct StandardOutputMetric
     n_sys
     n_spec
 end
+
 function (som::StandardOutputMetric)(sol_sys, sol_spec)
     if sol_sys.retcode == :Success && sol_spec.retcode == :Success
         return sum((sol_sys[som.n_sys, :] .- sol_spec[som.n_spec, :]) .^ 2)
@@ -33,6 +35,7 @@ mutable struct NoTransientOutputMetric
     n_spec
     transient_time
 end
+
 function (som::NoTransientOutputMetric)(sol_sys, sol_spec)
     if sol_sys.retcode == :Success && sol_spec.retcode == :Success
         return sum((sol_sys[som.n_sys, som.transient_time:end] .- sol_spec[som.n_spec, som.transient_time:end]) .^ 2)

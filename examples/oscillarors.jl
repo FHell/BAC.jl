@@ -47,7 +47,7 @@ function create_kuramoto_example(w, dim_sys, dim_spec, tsteps, N_samples; modes 
         f_sys,
         tsteps,
         (tsteps[1], tsteps[end]),
-        [rand_fourier_input_generator(n, modes) for n = 1:N_samples], # input function i(t) 
+        [rand_fourier_input_generator(modes) for n = 1:N_samples], # input function i(t) 
         StandardOutputMetric(1, 1), # phase at interface node
         N_samples,
         dim_spec,
@@ -69,6 +69,39 @@ function (kur_met::KuramotoOutputMetric)(sol_sys, sol_spec)
     end
 end
 
+function (bl::BAC_Loss)(p; dim =1, solver_options...)
+    # Evalute the loss function of the BAC problem
+    if dim == 1
+        @views begin
+            p_sys = p[1:bl.dim_sys]
+            p_specs = [p[bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec] for n in 1:bl.N_samples]
+        end
+
+        loss = 0.
+
+        for n in 1:bl.N_samples
+            i = bl.input_sample[n]
+            loss += bl.output_metric(solve_sys_spec(bl, i, p_sys, p_specs[n]; solver_options...)...)
+        end
+
+        loss / bl.N_samples
+    elseif dim == 2
+        @views begin
+            p_sys = p[1:bl.dim_sys, 1:bl.dim_sys]
+            p_specs = [p[bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec, bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec] for n in 1:bl.N_samples]
+        end
+
+        loss = 0.
+
+        for n in 1:bl.N_samples
+            i = bl.input_sample[n]
+            loss += bl.output_metric(solve_sys_spec(bl, i, p_sys, p_specs[n]; solver_options...)...)
+        end
+
+        loss / bl.N_samples
+    end
+end
+
 dim_sys = 10
 dim_spec = 2
 N_samples = 10
@@ -76,9 +109,13 @@ omega = ones(dim_sys+dim_spec)
 kur = create_kuramoto_example(omega,dim_sys,dim_spec,0.:100.,N_samples)
 K_sys_init = 3*ones(dim_sys,dim_sys)
 K_spec_init = 3*ones(dim_spec,dim_spec)
-p_initial = [K_sys_init zeros(dim_sys, dim_spec);zeros(dim_spec,dim_sys) K_spec_init]
+#p_initial = [K_sys_init zeros(dim_sys, N_samples*dim_spec); zeros(N_samples*dim_spec, dim_sys+N_samples*dim_spec)]
 
-kur(p_initial)
+for i in 1:N_samples
+    p_initial[(dim_sys+2*i-1):(dim_sys+2*i), (dim_sys+2*i-1):(dim_sys+2*i)] = K_spec_init
+end
+
+kur(p_initial, dim = 2)
 #plot(kur.tsteps, kur.input_sample, c=:gray, alpha=1, legend=false)
 
 
@@ -92,3 +129,4 @@ res_10 = DiffEqFlux.sciml_train(
     cb = basic_bac_callback
     #cb = (p, l) -> plot_callback(kur, p, l, scenario_nums=scenarios)
     )
+
