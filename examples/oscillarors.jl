@@ -116,15 +116,11 @@ p_initial = vcat(view(K_sys_init, 1:dim_sys^2), repeat(view(K_spec_init,1:dim_sp
     p_specs = [reshape(p_initial[(dim_sys^2+1+(n-1)*dim_spec^2):(dim_sys^2+n*dim_spec^2)],(dim_spec,dim_spec)) for n in 1:N_samples]#[p[bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec, bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec] for n in 1:bl.N_samples]
 end
 
-dd_sys = solve(ODEProblem((dy,y,p,t) -> kur_ex(dy, y, i(t), p, t), ones(dim_sys), (0.,100.),  p_syss), Tsit5())
-
 kur(p_initial, dim = 2)
-#plot(kur.tsteps, kur.input_sample, c=:gray, alpha=1, legend=false)
 
-solve_sys_spec(kur, rand_fourier_input_generator(1), p_initial[1:dim_sys, 1:dim_sys], p_initial[dim_sys:end, dim_sys:end])
-
+##
 res_10 = DiffEqFlux.sciml_train(
-    p -> kur(p; abstol=1e-2, reltol=1e-2),
+    p -> kur(p; dim = 2, abstol=1e-2, reltol=1e-2),
     p_initial,
     DiffEqFlux.ADAM(0.5),
     maxiters = 5,
