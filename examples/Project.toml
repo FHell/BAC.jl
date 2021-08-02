@@ -1,5 +1,7 @@
 [deps]
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DiffEqFlux = "aae7a2af-3d4f-5e19-a356-7da93b79d9d0"
+LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 LightGraphs = "093fc24a-ae57-5d10-9952-331d41423f4d"
 OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
 Pipe = "b98c9c47-44ae-5843-9183-064241ee97a0"

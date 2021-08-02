@@ -14,10 +14,10 @@ using Statistics
 using DataFrames, Pipe
 using LaTeXStrings
 
-include("src/Core.jl")
-include("src/ExampleSystems.jl")
-include("src/PlotUtils.jl")
-include("src/Benchmark.jl")
+include("../src/Core.jl")
+include("../src/ExampleSystems.jl")
+include("../src/PlotUtils.jl")
+include("../src/Benchmark.jl")
 
 Random.seed!(42);
 
