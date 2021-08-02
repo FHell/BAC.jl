@@ -101,39 +101,6 @@ function (kur_met::KuramotoOutputMetric)(sol_sys, sol_spec)
     end
 end
 
-function (bl::BAC_Loss)(p; dim =1, solver_options...)
-    # Evalute the loss function of the BAC problem
-    if dim == 1
-        @views begin
-            p_sys = p[1:bl.dim_sys]
-            p_specs = [p[bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec] for n in 1:bl.N_samples]
-        end
-
-        loss = 0.
-
-        for n in 1:bl.N_samples
-            i = bl.input_sample[n]
-            loss += bl.output_metric(solve_sys_spec(bl, i, p_sys, p_specs[n]; solver_options...)...)
-        end
-
-        loss / bl.N_samples
-    elseif dim == 2
-        @views begin
-            p_sys = reshape(p[1:bl.dim_sys^2],(bl.dim_sys,bl.dim_sys))#p[1:bl.dim_sys, 1:bl.dim_sys]
-            p_specs = [reshape(p[(bl.dim_sys^2+1+(n-1)*bl.dim_spec^2):(bl.dim_sys^2+n*bl.dim_spec^2)],(bl.dim_spec,bl.dim_spec)) for n in 1:N_samples]#[p[bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec, bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec] for n in 1:bl.N_samples]
-        end
-
-        loss = 0.
-
-        for n in 1:bl.N_samples
-            i = bl.input_sample[n]
-            loss += bl.output_metric(solve_sys_spec(bl, i, p_sys, p_specs[n]; solver_options...)...)
-        end
-
-        loss / bl.N_samples
-    end
-end
-
 ##
 dim_sys = 10
 dim_spec = 2
