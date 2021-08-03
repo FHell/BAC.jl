@@ -20,7 +20,7 @@ function plot_callback(bl, p, loss; loss_array=nothing, scenario_nums=nothing, f
         dd_sys, dd_spec = solve_bl_n(bl, scenario_nums[1], p, dim = dim)
         plt = plot(dd_sys, vars=1; label="System output", plot_options...)
         plot!(plt, dd_spec, vars=1; label="Specification output", plot_options...)
-        plot!(plt, dd_spec.t, bl.inputs[scenario_nums[1]]; c=:gray, alpha=0.75, label="Input", plot_options...)
+        plot!(plt, dd_spec.t, bl.input_sample[scenario_nums[1]]; c=:gray, alpha=0.75, label="Input", plot_options...)
         title!("Input scenario $(scenario_nums[1])")
         display(plt)
     else
@@ -31,7 +31,7 @@ function plot_callback(bl, p, loss; loss_array=nothing, scenario_nums=nothing, f
                 dd_sys, dd_spec = solve_bl_n(bl, i, p, dim = dim)
                 plot!(plt, dd_sys, vars=1; label = "System output (scenario $i)", c = palette(:tab20)[2*i-1], subplot = j, plot_options...)
                 plot!(plt, dd_spec, vars=1; label = "Specification output (scenario $i))", c = palette(:tab20)[2*i], linestyle = :dash, subplot = j, plot_options...)
-                plot!(plt, dd_spec.t, bl.inputs[i]; c=:gray, alpha=0.5, label = "Input $i", subplot = j, title = ("Input scenario $i"), plot_options...)
+                plot!(plt, dd_spec.t, bl.input_sample[i]; c=:gray, alpha=0.5, label = "Input $i", subplot = j, title = ("Input scenario $i"), plot_options...)
                 #title!("Input scenarios $i")
                 j+=1
           end
