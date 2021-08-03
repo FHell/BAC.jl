@@ -27,7 +27,7 @@ end
 
 
 function (dd::kuramoto_osc)(dx, x, i, p, t)
-    # x -> Theta, p -> omega
+    # x -> Theta, p -> K
     p_total = sum(abs.(p))
     # dx .= [dd.w[k] + sum(p[k,j]/p_total*sin(x[k]-x[j]) for j in 1:dd.N)/dd.N for k in 1:dd.N]
     for k in 1:dd.N
@@ -43,32 +43,6 @@ function (dd::kuramoto_osc)(dx, x, i, p, t)
     # the relu(p) should be handles outside the function definition
     nothing
 end
-
-##
-
-dim_sys = 10
-dim_spec = 2
-N_samples = 10
-K_sys_init = 3 * rand(dim_sys, dim_sys) .+ 1.
-K_spec_init = 3 * rand(dim_spec, dim_spec) .+ 1.
-
-
-i = rand_fourier_input_generator(1)
-##
-# Try to solve differential equations without involving DiffEqFlux and BAC
-omega = 3 * rand(dim_sys)
-omega .-= mean(omega)
-kur_ex = kuramoto_osc(omega, dim_sys, zeros(dim_sys), 50.)
-kur_ex_spec = kuramoto_osc(omega, dim_spec, zeros(dim_spec), 25.)
-
-res_spec = solve(ODEProblem((dy, y, p, t) -> kur_ex_spec(dy, y, i(t), p, t), ones(dim_spec), (0., 100.),  K_spec_init), Tsit5())
-
-res_sys = solve(ODEProblem((dy, y, p, t) -> kur_ex(dy, y, i(t), p, t), ones(dim_sys), (0., 100.),  K_sys_init), Tsit5())
-
-plot(res_sys)
-plot(res_spec)
-# savefig("../graphics/kuramoto_spec.png")
-
 
 ##
 mutable struct KuramotoOutputMetric
@@ -105,14 +79,37 @@ function (kur_met::KuramotoOutputMetric)(sol_sys, sol_spec)
 end
 
 ##
+##
+
 dim_sys = 10
 dim_spec = 2
 N_samples = 10
-omega = ones(dim_sys + dim_spec)
-kur = create_kuramoto_example(omega, dim_sys, dim_spec, 20., 0.:100., N_samples)
-K_sys_init = 3 * ones(dim_sys, dim_sys)
-K_spec_init = 3 * ones(dim_spec, dim_spec)
+K_sys_init = 6. * rand(dim_sys, dim_sys) .+ 1.
+K_spec_init = 6. * rand(dim_spec, dim_spec) .+ 1.
+
 p_initial = vcat(view(K_sys_init, 1:dim_sys^2), repeat(view(K_spec_init, 1:dim_spec^2), N_samples))
+
+i = rand_fourier_input_generator(1)
+##
+# Try to solve differential equations without involving DiffEqFlux and BAC
+omega = 3 * rand(dim_sys)
+omega .-= mean(omega)
+kur_ex = kuramoto_osc(omega, dim_sys, zeros(dim_sys), 50.)
+kur_ex_spec = kuramoto_osc(omega, dim_spec, zeros(dim_spec), 25.)
+
+res_spec = solve(ODEProblem((dy, y, p, t) -> kur_ex_spec(dy, y, i(t), p, t), ones(dim_spec), (0., 100.),  K_spec_init), Tsit5())
+
+res_sys = solve(ODEProblem((dy, y, p, t) -> kur_ex(dy, y, i(t), p, t), ones(dim_sys), (0., 100.),  K_sys_init), Tsit5())
+
+plot(res_sys)
+plot(res_spec)
+# savefig("../graphics/kuramoto_spec.png")
+
+omega = ones(dim_sys + dim_spec)
+omega .-= mean(omega)
+
+kur = create_kuramoto_example(omega, dim_sys, dim_spec, 20., 0.:100., N_samples)
+
 
 @views begin
     p_syss = reshape(p_initial[1:dim_sys^2], (dim_sys, dim_sys))# p[1:bl.dim_sys, 1:bl.dim_sys]
@@ -130,10 +127,13 @@ kur.output_metric(sol1, sol2)
 l = kur(p_initial, dim=2, abstol=1e-2, reltol=1e-2)
 
 ## For some reason using kur(p) inside an optimization loop results in an error. I have not been able to find the reason yet
+# The error occurs in the differential equation system (line 36), as if p is a 4-element vector instead of 2x2 matrix.
+# All the functions run normally without DiffEqFlux
 res_10 = DiffEqFlux.sciml_train(
-    p -> kur(p, dim=2, abstol=1e-2, reltol=1e-2),
+    p -> kur(p, dim=2, abstol=1e-1, reltol=1e-1),
     p_initial,
     DiffEqFlux.ADAM(0.5),
+    #DiffEqFlux.BFGS(),
     maxiters=5,
     cb=basic_bac_callback
     # cb = (p, l) -> plot_callback(kur, p, l, scenario_nums=scenarios)
