@@ -60,7 +60,7 @@ il = individual_losses(bac_10, p_initial)
     DiffEqFlux.ADAM(0.5),
     maxiters = 5,
     #cb = basic_bac_callback
-    cb = (p, l) -> plot_callback(bac_10, p, l, scenario_nums=scenarios, fig_name = "graphics/res$(l).png")
+    cb = (p, l) -> plot_callback(bac_10, p, l, scenario_nums=scenarios)
     )
 
 plot_callback(bac_10, res_10.minimizer, res_10.minimum, scenario_nums = 1:3)
@@ -72,7 +72,7 @@ plot_callback(bac_10, res_10.minimizer, res_10.minimum, scenario_nums = 1:3)
     DiffEqFlux.ADAM(0.5),
     maxiters = 20,
     #cb = basic_bac_callback
-    cb = (p, l) -> plot_callback(bac_10, p, l, scenario_nums = scenarios, fig_name = "graphics/res$(l).png")
+    cb = (p, l) -> plot_callback(bac_10, p, l, scenario_nums = scenarios, fig_name = "../graphics/res$(l).png")
     )
 
 @time res_10 = DiffEqFlux.sciml_train(
@@ -84,7 +84,7 @@ plot_callback(bac_10, res_10.minimizer, res_10.minimum, scenario_nums = 1:3)
     # cb = (p, l) -> plot_callback(bac_10, p, l, scenario_nums=scenarios)
     )
 
-plot_callback(bac_10, res_10.minimizer, l; scenario_nums=scenarios, fig_name = "graphics/opt_123-10_l$(l)_axis.png")
+plot_callback(bac_10, res_10.minimizer, l; scenario_nums=scenarios, fig_name = "../graphics/opt_123-10_l$(l)_axis.png")
 # this got it down to 0.01 loss. we can look at the minimizer:
 # p_sys
 res_10.minimizer[1:dim_sys] |> relu |> println
@@ -153,7 +153,7 @@ for i in 1:10
         cb = basic_bac_callback
         )
     l = bac_100(res_100.minimizer);
-    plot_callback(bac_100, res_100.minimizer, l, input_sample = 50:52, fig_name = "graphics/res_100_int"*string(i, pad = 2)#=;ylims = (-0.5,0.5)=#)
+    plot_callback(bac_100, res_100.minimizer, l, input_sample = 50:52, fig_name = "../graphics/res_100_int"*string(i, pad = 2)#=;ylims = (-0.5,0.5)=#)
 end
 
 #plot_callback(bac_10, p_initial, l, scenario_nums = 1:10, legend = false, fig_name = "../graphics/for Frank/init_1-10_nolegend.png")
