@@ -153,7 +153,7 @@ for i in 1:10
         cb = basic_bac_callback
         )
     l = bac_100(res_100.minimizer);
-    plot_callback(bac_100, res_100.minimizer, l, input_sample = 50:52, fig_name = "../graphics/res_100_int"*string(i, pad = 2)#=;ylims = (-0.5,0.5)=#)
+    plot_callback(bac_100, res_100.minimizer, l, scenario_nums = 50:52, fig_name = "../graphics/res_100_int"*string(i, pad = 2)#=;ylims = (-0.5,0.5)=#)
 end
 
 #plot_callback(bac_10, p_initial, l, scenario_nums = 1:10, legend = false, fig_name = "../graphics/for Frank/init_1-10_nolegend.png")
