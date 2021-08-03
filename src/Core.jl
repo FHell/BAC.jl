@@ -87,7 +87,7 @@ function solve_bl_n(bl::BAC_Loss, n::Int, p; dim = 1, solver_options...)
     elseif dim == 2
         @views begin
             p_sys = reshape(p[1:bl.dim_sys^2],(bl.dim_sys,bl.dim_sys))#p[1:bl.dim_sys, 1:bl.dim_sys]
-            p_specs = [reshape(p[(bl.dim_sys^2+1+(n-1)*bl.dim_spec^2):(bl.dim_sys^2+n*bl.dim_spec^2)],(bl.dim_spec,bl.dim_spec)) for n in 1:N_samples]#[p[bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec, bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec] for n in 1:bl.N_samples]
+            p_spec = reshape(p[(bl.dim_sys^2+1+(n-1)*bl.dim_spec^2):(bl.dim_sys^2+n*bl.dim_spec^2)],(bl.dim_spec,bl.dim_spec))#[p[bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec, bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec] for n in 1:bl.N_samples]
         end
     end
 
