@@ -36,6 +36,9 @@ function (dd::kuramoto_osc)(dx, x, i, p, t)
             dx[k] -= abs(p[k,j]) * sin(x[k] - x[j])
             dx[j] += abs(p[k,j]) * sin(x[k] - x[j])
         end
+        #=for j in 1:dd.N
+            dx[k] -= abs(p[k,j]) * sin(x[k] - x[j])
+        end=#
         dx[k] *= dd.K_av / p_total
         dx[k] += dd.w[k]
     end
@@ -109,7 +112,7 @@ omega = ones(dim_sys + dim_spec)
 omega .-= mean(omega)
 
 kur = create_kuramoto_example(omega, dim_sys, dim_spec, 20., 0.:100., N_samples)
-
+solve_sys_spec(kur, i, p_syss, p_specs[1])
 
 @views begin
     p_syss = reshape(p_initial[1:dim_sys^2], (dim_sys, dim_sys))# p[1:bl.dim_sys, 1:bl.dim_sys]
