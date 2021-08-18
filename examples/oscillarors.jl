@@ -28,6 +28,7 @@ end
 
 function (dd::kuramoto_osc)(dx, x, i, p, t)
     # x -> Theta, p -> K
+    print(size(p))
     p_total = sum(abs.(p))
     # dx .= [dd.w[k] + sum(p[k,j]/p_total*sin(x[k]-x[j]) for j in 1:dd.N)/dd.N for k in 1:dd.N]
     for k in 1:dd.N
@@ -99,7 +100,6 @@ omega = 3 * rand(dim_sys)
 omega .-= mean(omega)
 kur_ex = kuramoto_osc(omega, dim_sys, zeros(dim_sys), 50.)
 kur_ex_spec = kuramoto_osc(omega, dim_spec, zeros(dim_spec), 25.)
-
 res_spec = solve(ODEProblem((dy, y, p, t) -> kur_ex_spec(dy, y, i(t), p, t), ones(dim_spec), (0., 100.),  K_spec_init), Tsit5())
 
 res_sys = solve(ODEProblem((dy, y, p, t) -> kur_ex(dy, y, i(t), p, t), ones(dim_sys), (0., 100.),  K_sys_init), Tsit5())
@@ -125,10 +125,10 @@ p_total = sum(abs.(p_syss))
 
 ## Check if kur(p) works - yes
 scenarios = 1:3
-sol1, sol2 = solve_bl_n(kur, 3, p_initial, scenario_nums=scenarios, dim=2)
+sol1, sol2 = solve_bl_n(kur, 3, p_initial, scenario_nums=scenarios)
 kur.output_metric(sol1, sol2)
 
-l = kur(p_initial, dim=2, abstol=1e-2, reltol=1e-2)
+l = kur(p_initial, abstol=1e-2, reltol=1e-2)
 
 ## For some reason using kur(p) inside an optimization loop results in an error. I have not been able to find the reason yet
 # The error occurs in the differential equation system (line 36), as if p is a 4-element vector instead of 2x2 matrix.
@@ -144,3 +144,10 @@ res_10 = DiffEqFlux.sciml_train(
     )
 
 plot_callback(kur, p_initial, l, dim = 2, scenario_nums = 1)
+
+##
+using ForwardDiff
+##
+t = p -> kur(p, dim=2, abstol=1e-1, reltol=1e-1)
+
+gradient(t, ones(160))

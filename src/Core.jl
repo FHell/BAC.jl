@@ -26,16 +26,20 @@ end
 function (bl::BAC_Loss)(p; dim = 1, solver_options...)
     # Evalute the loss function of the BAC problem
     if dim == 1
-        @views begin
+        p_sys = view(p,1:bl.dim_sys)
+        p_specs = [view(p,bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec) for n in 1:bl.N_samples]
+        #=@views begin
             p_sys = p[1:bl.dim_sys]
             p_specs = [p[bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec] for n in 1:bl.N_samples]
-        end
+        end=#
 
     elseif dim == 2
-        @views begin
+        p_sys = reshape(view(p,1:bl.dim_sys^2),(bl.dim_sys,bl.dim_sys))
+        p_specs = [reshape(view(p,(bl.dim_sys^2+1+(n-1)*bl.dim_spec^2):(bl.dim_sys^2+n*bl.dim_spec^2)),(bl.dim_spec,bl.dim_spec)) for n in 1:N_samples]
+        #=@views begin
             p_sys = reshape(p[1:bl.dim_sys^2],(bl.dim_sys,bl.dim_sys))#p[1:bl.dim_sys, 1:bl.dim_sys]
             p_specs = [reshape(p[(bl.dim_sys^2+1+(n-1)*bl.dim_spec^2):(bl.dim_sys^2+n*bl.dim_spec^2)],(bl.dim_spec,bl.dim_spec)) for n in 1:N_samples]#[p[bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec, bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec] for n in 1:bl.N_samples]
-        end
+        end=#
     end
 
     loss = 0.
@@ -63,7 +67,7 @@ Parameters:
 - p_sys: parameters of the system
 - p_spec: parameters of specification
 """
-function solve_sys_spec(bl, i, p_sys, p_spec; solver_options...)
+function solve_sys_spec(bl, i, p_sys, p_spec; solver_optionss...)
     dd_sys = solve(ODEProblem((dy,y,p,t) -> bl.f_sys(dy, y, i(t), p, t), bl.y0_sys, bl.t_span, p_sys), bl.solver; saveat=bl.tsteps, solver_options...)
     dd_spec = solve(ODEProblem((dy,y,p,t) -> bl.f_spec(dy, y, i(t), p, t), bl.y0_spec, bl.t_span, p_spec), bl.solver; saveat=bl.tsteps, solver_options...)
     dd_sys, dd_spec
@@ -79,16 +83,21 @@ Parameters:
 """
 function solve_bl_n(bl::BAC_Loss, n::Int, p; dim = 1, solver_options...)
     if dim == 1
-        @views begin
+        p_sys = view(p,1:bl.dim_sys)
+        p_spec = view(p,bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec)
+        
+        #=@views begin
             p_sys = p[1:bl.dim_sys]
             p_spec = p[bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec]
-        end
+        end=#
 
     elseif dim == 2
-        @views begin
+        p_sys = reshape(view(p,1:bl.dim_sys^2),(bl.dim_sys,bl.dim_sys))
+        p_spec = reshape(view(p,(bl.dim_sys^2+1+(n-1)*bl.dim_spec^2):(bl.dim_sys^2+n*bl.dim_spec^2)),(bl.dim_spec,bl.dim_spec))
+        #=@views begin
             p_sys = reshape(p[1:bl.dim_sys^2],(bl.dim_sys,bl.dim_sys))#p[1:bl.dim_sys, 1:bl.dim_sys]
             p_spec = reshape(p[(bl.dim_sys^2+1+(n-1)*bl.dim_spec^2):(bl.dim_sys^2+n*bl.dim_spec^2)],(bl.dim_spec,bl.dim_spec))#[p[bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec, bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec] for n in 1:bl.N_samples]
-        end
+        end=#
     end
 
     i = bl.input_sample[n]

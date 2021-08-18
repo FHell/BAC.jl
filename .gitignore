@@ -24,6 +24,7 @@ docs/site/
 Manifest.toml
 !prototype/Manifest.toml
 !Benchmarking/Manifest.toml
+!examples/Manifest.toml
 
 .vscode
 
