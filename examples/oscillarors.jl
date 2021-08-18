@@ -111,13 +111,14 @@ plot(res_spec)
 omega = ones(dim_sys + dim_spec)
 omega .-= mean(omega)
 
-kur = create_kuramoto_example(omega, dim_sys, dim_spec, 20., 0.:100., N_samples)
-solve_sys_spec(kur, i, p_syss, p_specs[1])
-
 @views begin
     p_syss = reshape(p_initial[1:dim_sys^2], (dim_sys, dim_sys))# p[1:bl.dim_sys, 1:bl.dim_sys]
     p_specs = [reshape(p_initial[(dim_sys^2 + 1 + (n - 1) * dim_spec^2):(dim_sys^2 + n * dim_spec^2)], (dim_spec, dim_spec)) for n in 1:N_samples]# [p[bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec, bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec] for n in 1:bl.N_samples]
 end
+
+kur = create_kuramoto_example(omega, dim_sys, dim_spec, 20., 0.:100., N_samples)
+solve_sys_spec(kur, i, p_syss, p_specs[1])
+
 
 p_total = sum(abs.(p_syss))
 
