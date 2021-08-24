@@ -28,7 +28,8 @@ end
 
 function (dd::kuramoto_osc)(dx, x, i, p, t)
     # x -> Theta, p -> K
-    print(size(p))
+    #print(size(p))
+    p = reshape(p,(dd.N,dd.N))
     p_total = sum(abs.(p))
     # dx .= [dd.w[k] + sum(p[k,j]/p_total*sin(x[k]-x[j]) for j in 1:dd.N)/dd.N for k in 1:dd.N]
     for k in 1:dd.N
@@ -68,6 +69,7 @@ function create_kuramoto_example(w, dim_sys, dim_spec, K,  tsteps, N_samples; mo
         N_samples,
         dim_spec,
         dim_sys,
+        2,
         zeros(dim_spec),
         zeros(dim_sys), 
         Tsit5()
@@ -134,7 +136,7 @@ l = kur(p_initial, abstol=1e-2, reltol=1e-2)
 # The error occurs in the differential equation system (line 36), as if p is a 4-element vector instead of 2x2 matrix.
 # All the functions run normally without DiffEqFlux
 res_10 = DiffEqFlux.sciml_train(
-    p -> kur(p, dim=2, abstol=1e-1, reltol=1e-1),
+    p -> kur(p, abstol=1e-1, reltol=1e-1),
     p_initial,
     DiffEqFlux.ADAM(0.5),
     #DiffEqFlux.BFGS(),
@@ -143,7 +145,7 @@ res_10 = DiffEqFlux.sciml_train(
     # cb = (p, l) -> plot_callback(kur, p, l, scenario_nums=scenarios)
     )
 
-plot_callback(kur, p_initial, l, dim = 2, scenario_nums = 1)
+plot_callback(kur, p_initial, l, scenario_nums = 1)
 
 ##
 using ForwardDiff
