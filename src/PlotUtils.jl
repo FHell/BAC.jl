@@ -12,12 +12,12 @@ Optional parameters:
 - offset: defines by how much each scenario is offset from the previous one for better plot readability. If set to -1, all samples are plotted on subplots instead of a single figure.
 - plot_options: various plot options
 """
-function plot_callback(bl, p, loss; loss_array=nothing, scenario_nums=nothing, fig_name=nothing, offset=2, dim = 1, plot_options...)
+function plot_callback(bl, p, loss; loss_array=nothing, scenario_nums=nothing, fig_name=nothing, offset=2, plot_options...)
     display(loss)
     plt = plot()
     isnothing(scenario_nums) ? scenario_nums = rand(1:bl.N_samples) : nothing
     if length(scenario_nums) == 1
-        dd_sys, dd_spec = solve_bl_n(bl, scenario_nums[1], p, dim = dim)
+        dd_sys, dd_spec = solve_bl_n(bl, scenario_nums[1], p)
         plt = plot(dd_sys, vars=1; label="System output", plot_options...)
         plot!(plt, dd_spec, vars=1; label="Specification output", plot_options...)
         plot!(plt, dd_spec.t, bl.input_sample[scenario_nums[1]]; c=:gray, alpha=0.75, label="Input", plot_options...)
@@ -28,7 +28,7 @@ function plot_callback(bl, p, loss; loss_array=nothing, scenario_nums=nothing, f
         if offset == -1
             plt = plot(layout = (length(scenario_nums),1))
             for i in scenario_nums
-                dd_sys, dd_spec = solve_bl_n(bl, i, p, dim = dim)
+                dd_sys, dd_spec = solve_bl_n(bl, i, p)
                 plot!(plt, dd_sys, vars=1; label = "System output (scenario $i)", c = palette(:tab20)[2*i-1], subplot = j, plot_options...)
                 plot!(plt, dd_spec, vars=1; label = "Specification output (scenario $i))", c = palette(:tab20)[2*i], linestyle = :dash, subplot = j, plot_options...)
                 plot!(plt, dd_spec.t, bl.input_sample[i]; c=:gray, alpha=0.5, label = "Input $i", subplot = j, title = ("Input scenario $i"), plot_options...)
