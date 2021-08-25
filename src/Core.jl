@@ -14,8 +14,8 @@ Structure, containing a probabilistic behavioural control problem.
     input_sample # this is called with the sample as an argument and needs to return an input function i(t)
     output_metric
     N_samples::Int
-    dim_spec::Int
-    dim_sys::Int
+    size_p_spec::Int
+    size_p_sys::Int
     #dim_param::Int
     y0_spec
     y0_sys
@@ -27,8 +27,8 @@ end
 function (bl::BAC_Loss)(p; solver_options...)
     # Evalute the loss function of the BAC problem
     
-    p_sys = view(p,1:bl.dim_sys)
-    p_specs = [view(p,(bl.dim_sys + 1 + (n - 1) * bl.dim_spec):(bl.dim_sys + n * bl.dim_spec)) for n in 1:bl.N_samples]
+    p_sys = view(p,1:bl.size_p_sys)
+    p_specs = [view(p,(bl.size_p_sys + 1 + (n - 1) * bl.size_p_spec):(bl.size_p_sys + n * bl.size_p_spec)) for n in 1:bl.N_samples]
 
     loss = 0.
 
@@ -70,8 +70,8 @@ Parameters:
 - p: combined array of sys and spec parameters
 """
 function solve_bl_n(bl::BAC_Loss, n::Int, p; solver_options...)
-    p_sys = view(p,1:bl.dim_sys)
-    p_spec = view(p,(bl.dim_sys + 1 + (n - 1) * bl.dim_spec):(bl.dim_sys + n * bl.dim_spec))
+    p_sys = view(p,1:bl.size_p_sys)
+    p_spec = view(p,(bl.size_p_sys + 1 + (n - 1) * bl.size_p_spec):(bl.size_p_sys + n * bl.size_p_spec))
 
 
     i = bl.input_sample[n]
@@ -94,8 +94,8 @@ function bac_spec_only(bl::BAC_Loss, p_initial; optimizer=DiffEqFlux.ADAM(0.01),
     p = copy(p_initial)
 
     @views begin
-        p_sys = p[1:bl.dim_sys]
-        p_specs = [p[bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec] for n in 1:bl.N_samples]
+        p_sys = p[1:bl.size_p_sys]
+        p_specs = [p[bl.size_p_sys + 1 + (n - 1) * bl.size_p_spec:bl.size_p_sys + n * bl.size_p_spec] for n in 1:bl.N_samples]
     end
 
     for n in 1:bl.N_samples
@@ -126,8 +126,8 @@ function matching_loss(bl::BAC_Loss, p; solver_options...)
     # This means for all input samples we take the same P_spec
 
     @views begin
-        p_sys = p[1:bl.dim_sys]
-        p_spec = p[bl.dim_sys + 1:bl.dim_sys + bl.dim_spec]
+        p_sys = p[1:bl.size_p_sys]
+        p_spec = p[bl.size_p_sys + 1:bl.size_p_sys + bl.size_p_spec]
     end
 
     loss = 0.
@@ -150,8 +150,8 @@ Parameters:
 function individual_losses(bl::BAC_Loss, p)
     # Return the array of losses
     @views begin
-        p_sys = p[1:bl.dim_sys]
-        p_specs = [p[bl.dim_sys + 1 + (n - 1) * bl.dim_spec:bl.dim_sys + n * bl.dim_spec] for n in 1:bl.N_samples]
+        p_sys = p[1:bl.size_p_sys]
+        p_specs = [p[bl.size_p_sys + 1 + (n - 1) * bl.size_p_spec:bl.size_p_sys + n * bl.size_p_spec] for n in 1:bl.N_samples]
     end
 
     [bl(n, p_sys, p_specs[n]) for n in 1:bl.N_samples]
@@ -172,7 +172,7 @@ function resample(sampler, bac::BAC_Loss; n = 0)
         bac.N_samples = n
     end
     new_input_sample = [sampler(n) for n in 1:bac.N_samples]
-    BAC_Loss(bac.f_spec, bac.f_sys, bac.tsteps, bac.t_span, new_input_sample, bac.output_metric, bac.N_samples, bac.dim_spec, bac.dim_sys, bac.y0_spec, bac.y0_sys, bac.solver)
+    BAC_Loss(bac.f_spec, bac.f_sys, bac.tsteps, bac.t_span, new_input_sample, bac.output_metric, bac.N_samples, bac.size_p_spec, bac.size_p_sys, bac.y0_spec, bac.y0_sys, bac.solver)
 end
 
 # Basic callback
