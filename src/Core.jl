@@ -16,7 +16,7 @@ Structure, containing a probabilistic behavioural control problem.
     N_samples::Int
     dim_spec::Int
     dim_sys::Int
-    dim_param::Int
+    #dim_param::Int
     y0_spec
     y0_sys
     solver = Tsit5()
@@ -27,8 +27,8 @@ end
 function (bl::BAC_Loss)(p; solver_options...)
     # Evalute the loss function of the BAC problem
     
-    p_sys = view(p,1:bl.dim_sys^bl.dim_param)
-    p_specs = [view(p,(bl.dim_sys^bl.dim_param + 1 + (n - 1) * bl.dim_spec^bl.dim_param):(bl.dim_sys^bl.dim_param + n * bl.dim_spec^bl.dim_param)) for n in 1:bl.N_samples]
+    p_sys = view(p,1:bl.dim_sys)
+    p_specs = [view(p,(bl.dim_sys + 1 + (n - 1) * bl.dim_spec):(bl.dim_sys + n * bl.dim_spec)) for n in 1:bl.N_samples]
 
     loss = 0.
 
@@ -70,8 +70,8 @@ Parameters:
 - p: combined array of sys and spec parameters
 """
 function solve_bl_n(bl::BAC_Loss, n::Int, p; solver_options...)
-    p_sys = view(p,1:bl.dim_sys^bl.dim_param)
-    p_spec = view(p,(bl.dim_sys^bl.dim_param + 1 + (n - 1) * bl.dim_spec^bl.dim_param):(bl.dim_sys^bl.dim_param + n * bl.dim_spec^bl.dim_param))
+    p_sys = view(p,1:bl.dim_sys)
+    p_spec = view(p,(bl.dim_sys + 1 + (n - 1) * bl.dim_spec):(bl.dim_sys + n * bl.dim_spec))
 
 
     i = bl.input_sample[n]

@@ -67,9 +67,8 @@ function create_kuramoto_example(w, dim_sys, dim_spec, K,  tsteps, N_samples; mo
         [rand_fourier_input_generator(n, N=modes) for n = 1:N_samples], # input function i(t) 
         StandardOutputMetric(1, 1), # phase at interface node
         N_samples,
-        dim_spec,
-        dim_sys,
-        2,
+        dim_spec^2,
+        dim_sys^2,
         zeros(dim_spec),
         zeros(dim_sys), 
         Tsit5()
@@ -136,7 +135,7 @@ l = kur(p_initial, abstol=1e-2, reltol=1e-2)
 # The error occurs in the differential equation system (line 36), as if p is a 4-element vector instead of 2x2 matrix.
 # All the functions run normally without DiffEqFlux
 res_10 = DiffEqFlux.sciml_train(
-    p -> kur(p, abstol=1e-1, reltol=1e-1),
+    p -> kur(p, abstol=1e-2, reltol=1e-2),
     p_initial,
     DiffEqFlux.ADAM(0.5),
     #DiffEqFlux.BFGS(),
