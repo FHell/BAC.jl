@@ -17,6 +17,8 @@ include("../src/ExampleSystems.jl")
 include("../src/PlotUtils.jl")
 include("../src/Benchmark.jl")
 
+Random.seed!(1) # For reproducability fix the seed
+
 ## The full system
 
 mutable struct kuramoto_osc{w, N, K}
@@ -132,12 +134,12 @@ plot_callback(kur, p_initial, l, scenario_nums = 5)
 ## For some reason using kur(p) inside an optimization loop results in an error. I have not been able to find the reason yet
 # The error occurs in the differential equation system (line 36), as if p is a 4-element vector instead of 2x2 matrix.
 # All the functions run normally without DiffEqFlux
-res_10 = DiffEqFlux.sciml_train(
+res_1 = DiffEqFlux.sciml_train(
     p -> kur(p, abstol=1e-4, reltol=1e-4),
     p_initial,
-    # DiffEqFlux.ADAM(0.1),
-    DiffEqFlux.BFGS(),
-    maxiters=5,
+    DiffEqFlux.ADAM(0.1),
+    # DiffEqFlux.BFGS(),
+    maxiters=25,
     cb=basic_bac_callback
     # cb = (p, l) -> plot_callback(kur, p, l, scenario_nums=scenarios)
     )
@@ -145,38 +147,63 @@ res_10 = DiffEqFlux.sciml_train(
 
 ##
 
-plot_callback(kur, res_10.u, res_10.minimum, scenario_nums = 5)
+plot_callback(kur, res_1.u, res_1.minimum, scenario_nums = 5)
 
 ##
 
-res_iter = DiffEqFlux.sciml_train(
+res_2 = DiffEqFlux.sciml_train(
     p -> kur(p, abstol=1e-4, reltol=1e-4),
-    res_10.u,
+    res_1.u,
     # DiffEqFlux.ADAM(0.1),
     DiffEqFlux.BFGS(),
-    maxiters=30,
+    maxiters=25,
     cb=basic_bac_callback
     # cb = (p, l) -> plot_callback(kur, p, l, scenario_nums=scenarios)
     )
 
 ##
 
-plot_callback(kur, res_iter.u, res_iter.minimum, scenario_nums = 2)
+
+plot_callback(kur, res_2.u, res_2.minimum, scenario_nums = 5)
 
 ##
 
-res_iter = DiffEqFlux.sciml_train(
+res_3 = DiffEqFlux.sciml_train(
     p -> kur(p, abstol=1e-4, reltol=1e-4),
-    res_iter.u,
+    res_2.u,
+    # DiffEqFlux.BFGS(),
     # DiffEqFlux.ADAM(0.1),
     DiffEqFlux.AMSGrad(0.01),
-    maxiters=200,
+    maxiters=100,
     cb=basic_bac_callback
     # cb = (p, l) -> plot_callback(kur, p, l, scenario_nums=scenarios)
     )
 
 ##
 
-plot_callback(kur, res_iter.u, res_iter.minimum, scenario_nums = 1)
+plot_callback(kur, res_3.u, res_3.minimum, scenario_nums = 5)
+
+##
+
+res_4 = DiffEqFlux.sciml_train(
+    p -> kur(p, abstol=1e-4, reltol=1e-4),
+    res_3.u,
+    # DiffEqFlux.ADAM(0.1),
+    DiffEqFlux.BFGS(),
+    maxiters=25,
+    cb=basic_bac_callback
+    # cb = (p, l) -> plot_callback(kur, p, l, scenario_nums=scenarios)
+    )
+
+##
+
+plot_callback(kur, res_4.u, res_4.minimum, scenario_nums = 5)
+
+##
+
+@views begin
+    p_final = reshape(res_4.u[1:dim_sys^2], (dim_sys, dim_sys))
+    p_final_specs = [res_4.u[(dim_sys^2 + 1 + (n - 1) * 4):(dim_sys^2 + n * 4)] for n in 1:N_samples]
+end
 
 ##
