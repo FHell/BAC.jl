@@ -108,8 +108,8 @@ function bac_spec_only(bl::BAC_Loss, p_initial; optimizer=DiffEqFlux.ADAM(0.01),
             )
         p_specs[n] .= res.minimizer
     end
-println(p_sys)
-println(p_specs)
+    # println(p_sys)
+    # println(p_specs)
     p
 end
 
