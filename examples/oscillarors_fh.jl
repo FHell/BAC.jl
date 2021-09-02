@@ -122,7 +122,6 @@ kur_ex = kuramoto_osc(omega, N_osc, K_av)
 
 res_spec = solve(ODEProblem((dy, y, p, t) -> spec(dy, y, 0., p, t), ones(2), (t_steps[1], t_steps[end]),  p_spec_init), Tsit5())
 res_sys = solve(ODEProblem((dy, y, p, t) -> kur_ex(dy, y, 0., p, t), ones(2*N_osc), (t_steps[1], t_steps[end]),  p_sys_init), Tsit5())
-
 ##
 
 plot(res_sys)
@@ -156,7 +155,8 @@ kur.output_metric(sol1, sol2)
 p_initial = bac_spec_only(kur, p_initial; optimizer_options=(:maxiters => 1000,), solver_options = (abstol = 1e-4, reltol=1e-4))
 
 l = kur(p_initial, abstol=1e-4, reltol=1e-4)
-plot_callback(kur, p_initial, l, scenario_nums = 1:10)
+plot_callback(kur, p_initial, l, scenario_nums = 1:10, plot_options = (:xlims => (kur.t_span[2]/2, kur.t_span[2])))
+plot_callback(kur, p_initial, l, scenario_nums = 1:10, xlims = (kur.t_span[2]/2, kur.t_span[2]))
 
 ##
 
@@ -176,7 +176,7 @@ res_1 = DiffEqFlux.sciml_train(
 
 ##
 
-plot_callback(kur, res_1.u, res_1.minimum, scenario_nums = 10)
+plot_callback(kur, res_1.u, res_1.minimum, scenario_nums = 10, xlims = (kur.t_span[2]/2, kur.t_span[2]))
 
 ##
 
@@ -193,7 +193,7 @@ res_2 = DiffEqFlux.sciml_train(
 ##
 
 
-plot_callback(kur, res_2.u, res_2.minimum, scenario_nums = 1:10)
+plot_callback(kur, res_2.u, res_2.minimum, scenario_nums = 1:10, xlims = (kur.t_span[2]/2, kur.t_span[2]))
 
 ##
 
@@ -210,7 +210,7 @@ res_3 = DiffEqFlux.sciml_train(
 
 ##
 
-plot_callback(kur, res_3.u, res_3.minimum, scenario_nums = 5)
+plot_callback(kur, res_3.u, res_3.minimum, scenario_nums = 5, xlims = (kur.t_span[2]/2, kur.t_span[2]))
 
 ##
 
@@ -226,7 +226,7 @@ res_4 = DiffEqFlux.sciml_train(
 
 ##
 
-plot_callback(kur, res_4.u, res_4.minimum, scenario_nums = 5)
+plot_callback(kur, res_4.u, res_4.minimum, scenario_nums = 5, xlims = (kur.t_span[2]/2, kur.t_span[2]))
 
 ##
 
@@ -238,10 +238,10 @@ end
 ##
 scen = 1:5
 
-plot_callback(kur, res_1.u, res_1.minimum, scenario_nums = scen)
-plot_callback(kur, res_2.u, res_2.minimum, scenario_nums = scen)
-plot_callback(kur, res_3.u, res_3.minimum, scenario_nums = scen)
-plot_callback(kur, res_4.u, res_4.minimum, scenario_nums = scen)
+plot_callback(kur, res_1.u, res_1.minimum, scenario_nums = scen, xlims = (kur.t_span[2]/2, kur.t_span[2]))
+plot_callback(kur, res_2.u, res_2.minimum, scenario_nums = scen, xlims = (kur.t_span[2]/2, kur.t_span[2]))
+plot_callback(kur, res_3.u, res_3.minimum, scenario_nums = scen, xlims = (kur.t_span[2]/2, kur.t_span[2]))
+plot_callback(kur, res_4.u, res_4.minimum, scenario_nums = scen, xlims = (kur.t_span[2]/2, kur.t_span[2]))
 
 ##
 
@@ -259,6 +259,7 @@ res_5 = DiffEqFlux.sciml_train(
 
 ##
 
-plot_callback(kur, res_5.u, res_5.minimum, scenario_nums = 1:10)
+plot_callback(kur, res_5.u, res_5.minimum, scenario_nums = 1:10, xlims = (kur.t_span[2]/2, kur.t_span[2]))
 
 
+##

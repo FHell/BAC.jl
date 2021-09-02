@@ -18,25 +18,24 @@ include("../src/PlotUtils.jl")
 include("../src/Benchmark.jl")
 
 ##
-mutable struct kuramoto_osc{w, N, theta, K}
+mutable struct kuramoto_osc{w, N, K}
     w::w
     N::N
-    theta::theta
     K_av::K
 end
 
 
-function (dd::kuramoto_osc)(dx, x, i, p, t)
+function (dd::kuramoto_osc)(dx, x, i, p_in, t)
     # x -> Theta, p -> K
     #print(size(p))
-    p = reshape(p,(dd.N,dd.N))
+    p = reshape(p_in,(dd.N,dd.N))
     p_total = sum(abs.(p))
     # dx .= [dd.w[k] + sum(p[k,j]/p_total*sin(x[k]-x[j]) for j in 1:dd.N)/dd.N for k in 1:dd.N]
     for k in 1:dd.N
         dx[k] = 0.
         for j in 1:k
             dx[k] -= abs(p[k,j]) * sin(x[k] - x[j])
-            dx[j] += abs(p[k,j]) * sin(x[k] - x[j])
+            dx[j] -= abs(p[k,j]) * sin(x[k] - x[j])
         end
         #=for j in 1:dd.N
             dx[k] -= abs(p[k,j]) * sin(x[k] - x[j])
@@ -99,8 +98,8 @@ i = rand_fourier_input_generator(1)
 # Try to solve differential equations without involving DiffEqFlux and BAC
 omega = 3 * rand(dim_sys)
 omega .-= mean(omega)
-kur_ex = kuramoto_osc(omega, dim_sys, zeros(dim_sys), 50.)
-kur_ex_spec = kuramoto_osc(omega, dim_spec, zeros(dim_spec), 25.)
+kur_ex = kuramoto_osc(omega, dim_sys, 50.)
+kur_ex_spec = kuramoto_osc(omega, dim_spec, 25.)
 res_spec = solve(ODEProblem((dy, y, p, t) -> kur_ex_spec(dy, y, i(t), p, t), ones(dim_spec), (0., 100.),  K_spec_init), Tsit5())
 
 res_sys = solve(ODEProblem((dy, y, p, t) -> kur_ex(dy, y, i(t), p, t), ones(dim_sys), (0., 100.),  K_sys_init), Tsit5())
