@@ -130,16 +130,11 @@ scenarios = 1:3
 sol1, sol2 = solve_bl_n(kur, 3, p_initial, scenario_nums=scenarios)
 kur.output_metric(sol1, sol2)
 
-
-
 ## Plot where we start
-
 p_initial = bac_spec_only(kur, p_initial; optimizer_options=(:maxiters => 1000,), solver_options = (abstol = 1e-4, reltol=1e-4))
 
 l = kur(p_initial, abstol=1e-4, reltol=1e-4)
-plot_callback(kur, p_initial, l, scenario_nums = 1:10, plot_options = (:xlims => (kur.t_span[2]/2, kur.t_span[2])))
 plot_callback(kur, p_initial, l, scenario_nums = 1:10, xlims = (kur.t_span[2]/2, kur.t_span[2]))
-
 ##
 
 ## For some reason using kur(p) inside an optimization loop results in an error. I have not been able to find the reason yet
