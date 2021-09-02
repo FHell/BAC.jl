@@ -106,34 +106,16 @@ p_spec_init = rand(3)
 p_initial = vcat(view(p_sys_init, 1:dim_p), repeat(view(p_spec_init, 1:3), N_samples))
 
 i = rand_fourier_input_generator(1)
-
+K_av = 1.
 ##
-
 plot(i, 0., 4pi)
 
 ##
 
-omega = 8. * randn(N_osc)
+omega = 6. * randn(N_osc)
 omega .-= mean(omega)
 
 ##
-K_av = 1.
-kur_ex = kuramoto_osc(omega, N_osc, K_av)
-
-res_spec = solve(ODEProblem((dy, y, p, t) -> spec(dy, y, 0., p, t), ones(2), (t_steps[1], t_steps[end]),  p_spec_init), Tsit5())
-res_sys = solve(ODEProblem((dy, y, p, t) -> kur_ex(dy, y, 0., p, t), ones(2*N_osc), (t_steps[1], t_steps[end]),  p_sys_init), Tsit5())
-##
-
-plot(res_sys)
-##
-
-plot(res_spec)
-
-##
-
-omega = 20. * randn(N_osc)
-omega .-= mean(omega)
-
 @views begin
     p_syss = p_initial[1:dim_p]
     p_specs = [p_initial[(dim_p + 1 + (n - 1) * 3):(dim_p + n * 3)] for n in 1:N_samples]
