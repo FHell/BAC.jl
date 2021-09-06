@@ -19,70 +19,10 @@ include("../src/Benchmark.jl")
 
 Random.seed!(1) # For reproducability fix the seed
 
-## The full system
-
-mutable struct kuramoto_osc{w, N, K}
-    w::w
-    N::N
-    K_av::K
-end
-
-
-function (dd::kuramoto_osc)(dx, x, i, p, t)
-    # x -> Theta, p -> K
-    K_total = 0.
-    p_ind = 1
-    for k in 1:dd.N
-        dx[k] = x[k + dd.N]
-    end
-    for k in 1:dd.N
-        for j in 1:(k-1)
-            dx[k+dd.N] -= (relu(p[p_ind]) + 1.) * sin(x[k] - x[j])
-            dx[j+dd.N] -= (relu(p[p_ind]) + 1.) * sin(x[j] - x[k])
-            K_total += relu(p[p_ind]) + 1.
-            p_ind += 1
-        end
-    end
-    for k in 1:dd.N
-      dx[k+dd.N] *= dd.K_av / K_total * (p_ind - 1) # (p_ind - 1) counts the number of edges
-      dx[k+dd.N] += dd.w[k] - (relu(p[p_ind]) + 1.) * x[k+dd.N]
-      p_ind += 1
-    end
-    # dx[1+dd.N] += dd.K_av * i
-    dx[1+dd.N] += 1. * i
-    nothing
-end
-## The specification, a kuramoto with inertia
-
-function kuramoto_spec(dx, x, i, p, t)
-    dx[1] = x[2]
-    dx[2] = p[1] - (relu(p[2]) + 1.) * x[2]  + 1. * i# inertial node with a slackbus
-    nothing
-end
-
-
-function create_kuramoto_example(w, N_osc, dim_p_spec, K,  tsteps, N_samples; modes=5)
-    f_sys = kuramoto_osc(w[1:N_osc], N_osc, K)
-    BAC_Loss(
-        kuramoto_spec,
-        f_sys,
-        tsteps,
-        (tsteps[1], tsteps[end]),
-        [rand_fourier_input_generator(n, N=modes) for n = 1:N_samples], # input function i(t) 
-        out_metric, # phase at interface node
-        N_samples,
-        dim_p_spec, # Parameters in the spec
-        N_osc * (N_osc - 1) ÷ 2 + N_osc, # Parameters in the sys
-        zeros(2), # Initial state conditions for spec
-        zeros(2 * N_osc), # Initial state conditions for sys
-        Tsit5()
-    )
-end
-
 ##
 
 const t_steps = 0.:0.1:4pi
-const n_transient = length(0.:0.1:2pi)
+#=const n_transient = length(0.:0.1:2pi)
 
 ##
 
@@ -93,7 +33,7 @@ function out_metric(sol_sys, sol_spec)
         return Inf # Solvers failing is bad.
     end
 end
-
+=#
 
 ## Parameters
 dim_p_spec = 2
@@ -101,7 +41,7 @@ N_osc = 10
 dim_p = N_osc * (N_osc - 1) ÷ 2 + N_osc
 N_samples = 10
 p_sys_init = 6. * rand(dim_p) .+ 1.
-p_spec_init = rand(dim_p_spec)
+p_spec_init = rand(dim_p_spec) .+ 1.
 
 p_initial = vcat(p_sys_init, repeat(p_spec_init, N_samples))
 
@@ -243,3 +183,17 @@ res_spec = solve(ODEProblem((dy, y, p, t) -> spec(dy, y, 0., p, t), ones(2), (t_
 res_sys = solve(ODEProblem((dy, y, p, t) -> kur_ex(dy, y, 0., p, t), ones(2*N_osc), (t_steps[1], t_steps[end]),  p_sys_init), Tsit5())
 
 plot(res_sys)
+
+##
+
+kur_100 = resample(rand_fourier_input_generator, kur; n = 100);
+
+p_sys_init_100 = 6. * rand(dim_p) .+ 1.
+p_spec_init_100 = rand(dim_p_spec) .+ 1.
+
+p_100 = vcat(p_sys_init, repeat(p_spec_init, 100))
+
+p_100[1:dim_p] .= res_4.minimizer[1:dim_p]
+p_100[dim_p+1:end] .= repeat(res_4.minimizer[dim_p+1:dim_p+1+dim_p_spec], 100)
+
+p_initial_100 = bac_spec_only(kur_100, p_initial_100)
