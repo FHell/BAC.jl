@@ -107,7 +107,7 @@ function kuramoto_spec(dx, x, i, p, t)
 end
 
 
-function kuramoto_out_metric(sol_sys, sol_spec; n_tr = length(0.:0.1:2pi))
+function kuramoto_out_metric(sol_sys, sol_spec; n_transient = length(0.:0.1:2pi))
     if sol_sys.retcode == :Success && sol_spec.retcode == :Success
         return sum((sol_sys[1, n_transient:end] .- sol_spec[1, n_transient:end]) .^ 2)
     else
@@ -123,7 +123,7 @@ function create_kuramoto_example(w, N_osc, dim_p_spec, K,  tsteps, N_samples; mo
         tsteps,
         (tsteps[1], tsteps[end]),
         [rand_fourier_input_generator(n, N=modes) for n = 1:N_samples], # input function i(t) 
-        (sol_sys, sol_spec) -> kuramoto_out_metric(sol_sys, sol_spec, n_tr = Int(round(length(0.:0.1:2pi)/2))), # phase at interface node
+        kuramoto_out_metric, # phase at interface node
         N_samples,
         dim_p_spec, # Parameters in the spec
         N_osc * (N_osc - 1) ÷ 2 + N_osc, # Parameters in the sys
