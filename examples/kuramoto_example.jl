@@ -10,6 +10,7 @@ Random.seed!(1);
 using Pipe: @pipe
 using LaTeXStrings
 using Statistics
+using DiffEqFlux
 
 ##
 const t_steps = 0.:0.1:4pi
@@ -126,13 +127,6 @@ plot_callback(kur, res_4.u, res_4.minimum, scenario_nums = scen, xlims = (kur.t_
 
 ##
 
-@views begin
-    p_final = res_4.u[1:dim_p]
-    p_final_specs = [res_4.u[(dim_p + 1 + (n - 1) * dim_p_spec):(dim_p + n * dim_p_spec)] for n in 1:N_samples]
-end
-
-##
-
 plot_callback(kur, res_1.u, res_1.minimum, scenario_nums = scen, xlims = (kur.t_span[2]/2, kur.t_span[2]))
 plot_callback(kur, res_2.u, res_2.minimum, scenario_nums = scen, xlims = (kur.t_span[2]/2, kur.t_span[2]))
 plot_callback(kur, res_3.u, res_3.minimum, scenario_nums = scen, xlims = (kur.t_span[2]/2, kur.t_span[2]))
@@ -156,23 +150,22 @@ res_5 = DiffEqFlux.sciml_train(
 plot_callback(kur, res_5.u, res_5.minimum, scenario_nums = scen, xlims = (kur.t_span[2]/2, kur.t_span[2]))
 
 ##
-kur_ex = kuramoto_osc(omega, N_osc, K_av)
 
-res_spec = solve(ODEProblem((dy, y, p, t) -> spec(dy, y, 0., p, t), ones(2), (t_steps[1], t_steps[end]),  p_spec_init), Tsit5())
-res_sys = solve(ODEProblem((dy, y, p, t) -> kur_ex(dy, y, 0., p, t), ones(2*N_osc), (t_steps[1], t_steps[end]),  p_sys_init), Tsit5())
-
-plot(res_sys)
+@views begin
+    p_final = res_5.u[1:dim_p]
+    p_final_specs = [res_5.u[(dim_p + 1 + (n - 1) * dim_p_spec):(dim_p + n * dim_p_spec)] for n in 1:N_samples]
+end
 
 ##
 
-kur_100 = resample(rand_fourier_input_generator, kur; n = 100);
+kur_100 = resample(BAC.rand_fourier_input_generator, kur; n = 100);
 
 p_sys_init_100 = 6. * rand(dim_p) .+ 1.
 p_spec_init_100 = rand(dim_p_spec) .+ 1.
 
 p_100 = vcat(p_sys_init, repeat(p_spec_init, 100))
 
-p_100[1:dim_p] .= res_4.minimizer[1:dim_p]
-p_100[dim_p+1:end] .= repeat(res_4.minimizer[dim_p+1:dim_p+1+dim_p_spec], 100)
+p_100[1:dim_p] .= relu.(p_final)
+p_100[dim_p+1:end] .= repeat(relu.(p_final_specs[1]), 100)
 
-p_initial_100 = bac_spec_only(kur_100, p_initial_100)
+p_initial_100 = BAC.bac_spec_only(kur_100, p_100)
