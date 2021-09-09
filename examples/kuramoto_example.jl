@@ -6,11 +6,13 @@ Pkg.activate(".")
 
 using BAC
 
+using Random
 Random.seed!(1);
 using Pipe: @pipe
 using LaTeXStrings
 using Statistics
 using DiffEqFlux
+using Plots
 
 ##
 const t_steps = 0.:0.1:4pi
@@ -26,47 +28,41 @@ p_spec_init = rand(dim_p_spec) .+ 1.
 
 p_initial = vcat(p_sys_init, repeat(p_spec_init, N_samples))
 
-i = BAC.rand_fourier_input_generator(1)
+@views begin
+    p_syss = p_initial[1:dim_p]
+    p_specs = [p_initial[(dim_p + 1 + (n - 1) * dim_p_spec):(dim_p + n * dim_p_spec)] for n in 1:N_samples]
+end
+
+
 K_av = 1.
 
 ##
+
+i = BAC.rand_fourier_input_generator(1)
 plot(i, 0., 4pi)
 
-##
+## Start with a small frequency spread
 
 omega = 1. * randn(N_osc);
 omega .-= mean(omega)
 
 ##
 
-@views begin
-    p_syss = p_initial[1:dim_p]
-    p_specs = [p_initial[(dim_p + 1 + (n - 1) * dim_p_spec):(dim_p + n * dim_p_spec)] for n in 1:N_samples]
-end
-
 kur = BAC.create_kuramoto_example(omega, N_osc, dim_p_spec, K_av, t_steps, N_samples) # specify modes = 0 for no input
 
-solve_sys_spec(kur, i, p_syss, p_specs[1])
-
 scen = 1:5
-sol1, sol2 = BAC.solve_bl_n(kur, 3, p_initial, scenario_nums = scen) # n and scen_nums???
-kur.output_metric(sol1, sol2)
 
 ## Plot where we start
 p_initial = BAC.bac_spec_only(kur, p_initial; optimizer_options=(:maxiters => 1000,), solver_options = (abstol = 1e-4, reltol=1e-4))
 
 l = kur(p_initial, abstol=1e-4, reltol=1e-4)
 plot_callback(kur, p_initial, l, scenario_nums = scen, xlims = (kur.t_span[2]/2, kur.t_span[2]))
-##
 
-## For some reason using kur(p) inside an optimization loop results in an error. I have not been able to find the reason yet
-# The error occurs in the differential equation system (line 36), as if p is a 4-element vector instead of 2x2 matrix.
-# All the functions run normally without DiffEqFlux
+##
 res_1 = DiffEqFlux.sciml_train(
     p -> kur(p, abstol=1e-4, reltol=1e-4),
     p_initial,
     DiffEqFlux.ADAM(0.1),
-    # DiffEqFlux.BFGS(),
     maxiters=25,
     cb=basic_bac_callback
     # cb = (p, l) -> plot_callback(kur, p, l, scenario_nums=scenarios)
@@ -81,7 +77,6 @@ plot_callback(kur, res_1.u, res_1.minimum, scenario_nums = scen, xlims = (kur.t_
 res_2 = DiffEqFlux.sciml_train(
     p -> kur(p, abstol=1e-4, reltol=1e-4),
     res_1.u,
-    # DiffEqFlux.ADAM(0.1),
     DiffEqFlux.BFGS(),
     maxiters=25,
     cb=basic_bac_callback
@@ -97,8 +92,6 @@ plot_callback(kur, res_2.u, res_2.minimum, scenario_nums = scen, xlims = (kur.t_
 res_3 = DiffEqFlux.sciml_train(
     p -> kur(p, abstol=1e-4, reltol=1e-4),
     res_2.u,
-    # DiffEqFlux.BFGS(),
-    # DiffEqFlux.ADAM(0.1),
     DiffEqFlux.AMSGrad(0.01),
     maxiters=100,
     cb=basic_bac_callback
@@ -114,7 +107,6 @@ plot_callback(kur, res_3.u, res_3.minimum, scenario_nums = scen, xlims = (kur.t_
 res_4 = DiffEqFlux.sciml_train(
     p -> kur(p, abstol=1e-4, reltol=1e-4),
     res_3.u,
-    # DiffEqFlux.ADAM(0.1),
     DiffEqFlux.BFGS(),
     maxiters=25,
     cb=basic_bac_callback
@@ -127,26 +119,21 @@ plot_callback(kur, res_4.u, res_4.minimum, scenario_nums = scen, xlims = (kur.t_
 
 ##
 
-plot_callback(kur, res_1.u, res_1.minimum, scenario_nums = scen, xlims = (kur.t_span[2]/2, kur.t_span[2]))
-plot_callback(kur, res_2.u, res_2.minimum, scenario_nums = scen, xlims = (kur.t_span[2]/2, kur.t_span[2]))
-plot_callback(kur, res_3.u, res_3.minimum, scenario_nums = scen, xlims = (kur.t_span[2]/2, kur.t_span[2]))
-plot_callback(kur, res_4.u, res_4.minimum, scenario_nums = scen, xlims = (kur.t_span[2]/2, kur.t_span[2]))
-
-##
-
 res_5 = DiffEqFlux.sciml_train(
-    p -> kur(p, abstol=1e-4, reltol=1e-4),
+    p -> kur(p, abstol=1e-5, reltol=1e-5),
     res_4.u,
-    # DiffEqFlux.ADAM(0.1),
     DiffEqFlux.AMSGrad(0.01),
-    # DiffEqFlux.BFGS(),
-    maxiters=225,
+    maxiters=100,
     cb=basic_bac_callback
     # cb = (p, l) -> plot_callback(kur, p, l, scenario_nums=scenarios)
     )
 
 ##
-
+plot_callback(kur, p_initial, l, scenario_nums = scen, xlims = (kur.t_span[2]/2, kur.t_span[2]))
+plot_callback(kur, res_1.u, res_1.minimum, scenario_nums = scen, xlims = (kur.t_span[2]/2, kur.t_span[2]))
+plot_callback(kur, res_2.u, res_2.minimum, scenario_nums = scen, xlims = (kur.t_span[2]/2, kur.t_span[2]))
+plot_callback(kur, res_3.u, res_3.minimum, scenario_nums = scen, xlims = (kur.t_span[2]/2, kur.t_span[2]))
+plot_callback(kur, res_4.u, res_4.minimum, scenario_nums = scen, xlims = (kur.t_span[2]/2, kur.t_span[2]))
 plot_callback(kur, res_5.u, res_5.minimum, scenario_nums = scen, xlims = (kur.t_span[2]/2, kur.t_span[2]))
 
 ##
@@ -156,7 +143,36 @@ plot_callback(kur, res_5.u, res_5.minimum, scenario_nums = scen, xlims = (kur.t_
     p_final_specs = [res_5.u[(dim_p + 1 + (n - 1) * dim_p_spec):(dim_p + n * dim_p_spec)] for n in 1:N_samples]
 end
 
+## Try with a larger spread
+
+omega = 20. * randn(N_osc);
+omega .-= mean(omega)
+
 ##
+
+kur2 = BAC.create_kuramoto_example(omega, N_osc, dim_p_spec, K_av, t_steps, N_samples) # specify modes = 0 for no input
+
+##
+p_initial2 = BAC.bac_spec_only(kur2, p_initial; optimizer_options=(:maxiters => 1000,), solver_options = (abstol = 1e-4, reltol=1e-4))
+
+l2 = kur2(p_initial2, abstol=1e-4, reltol=1e-4)
+plot_callback(kur2, p_initial2, l, scenario_nums = scen, xlims = (kur.t_span[2]/2, kur.t_span[2]))
+
+##
+res2_1 = DiffEqFlux.sciml_train(
+    p -> kur2(p, abstol=1e-4, reltol=1e-4),
+    p_initial2,
+    DiffEqFlux.ADAM(0.1),
+    maxiters=50,
+    cb=basic_bac_callback
+    # cb = (p, l) -> plot_callback(kur, p, l, scenario_nums=scenarios)
+    )
+
+##
+
+plot_callback(kur2, res2_1.u, res2_1.minimum, scenario_nums = scen, xlims = (kur.t_span[2]/2, kur.t_span[2]))
+
+## Increase number of nodes to 100
 
 kur_100 = resample(BAC.rand_fourier_input_generator, kur; n = 100);
 
@@ -168,4 +184,35 @@ p_100 = vcat(p_sys_init, repeat(p_spec_init, 100))
 p_100[1:dim_p] .= relu.(p_final)
 p_100[dim_p+1:end] .= repeat(relu.(p_final_specs[1]), 100)
 
+##
 p_initial_100 = BAC.bac_spec_only(kur_100, p_100)
+
+##
+res_100 = DiffEqFlux.sciml_train(
+    p -> kur_100(p, abstol=1e-4, reltol=1e-4),
+    p_initial_100,
+    DiffEqFlux.ADAM(0.1),
+    maxiters=50,
+    cb=basic_bac_callback
+    # cb = (p, l) -> plot_callback(kur, p, l, scenario_nums=scenarios)
+    )
+
+##
+
+plot_callback(kur_100, res_100.u, res_100.minimum, scenario_nums = scen, xlims = (kur.t_span[2]/2, kur.t_span[2]))
+
+##
+res_100 = DiffEqFlux.sciml_train(
+    p -> kur_100(p, abstol=1e-4, reltol=1e-4),
+    res_100.u,
+    DiffEqFlux.AMSGrad(0.01),
+    maxiters=50,
+    cb=basic_bac_callback
+    # cb = (p, l) -> plot_callback(kur, p, l, scenario_nums=scenarios)
+    )
+
+##
+
+plot_callback(kur_100, res_100.u, res_100.minimum, scenario_nums = scen, xlims = (kur.t_span[2]/2, kur.t_span[2]))
+
+##

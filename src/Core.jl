@@ -172,7 +172,7 @@ function resample(sampler, bac::BAC_Loss; n = 0)
         bac.N_samples = n
     end
     new_input_sample = [sampler(n) for n in 1:bac.N_samples]
-    BAC_Loss(bac.f_spec, bac.f_sys, bac.tsteps, bac.t_span, new_input_sample, bac.output_metric, bac.N_samples, bac.size_p_spec, bac.size_p_sys, bac.y0_spec, bac.y0_sys, bac.solver)
+    return BAC_Loss(bac.f_spec, bac.f_sys, bac.tsteps, bac.t_span, new_input_sample, bac.output_metric, bac.N_samples, bac.size_p_spec, bac.size_p_sys, bac.y0_spec, bac.y0_sys, bac.solver)
 end
 
 # Basic callback
